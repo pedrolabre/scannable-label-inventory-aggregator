@@ -47,6 +47,7 @@ LF1|118789|CANTINHO CAFE RUBI|85990|||c1
 - React 19 e Vite 6, em JavaScript.
 - Tailwind CSS 3, com as cores, o canto reto e a densidade da tela definidos em `tailwind.config.js` e `src/styles/global.css`.
 - IBM Plex Sans e Space Grotesk servidas pela própria aplicação, em `public/fonts/`.
+- Zod 3 na validação dos campos lidos de cada etiqueta.
 - Vitest com jsdom.
 
 ## Comandos
@@ -77,6 +78,14 @@ scannable-label-inventory-aggregator/
     main.jsx
     App.jsx
     App.test.jsx
+    domain/
+      schemas/
+        commonFields.js           campos reutilizáveis dos schemas
+        lf1FieldsSchema.js        regras de cada campo LF1
+        lf1FieldsSchema.test.js
+      services/
+        lf1Contract.js            leitura do texto LF1 e motivo da recusa
+        lf1Contract.test.js
     lib/
       app-meta.js     nome do produto
       cx.js           junção de classes
