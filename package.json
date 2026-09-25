@@ -7,18 +7,21 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "fixtures:qr": "node scripts/generate-qr-fixtures.mjs"
   },
   "dependencies": {
     "dexie": "4.4.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "zod": "3.25.76",
-    "zustand": "5.0.15"
+    "zustand": "5.0.15",
+    "zxing-wasm": "3.1.4"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "4.7.0",
     "autoprefixer": "10.5.6",
+    "bwip-js": "4.11.4",
     "fake-indexeddb": "6.2.5",
     "jsdom": "30.0.1",
     "postcss": "8.5.28",
