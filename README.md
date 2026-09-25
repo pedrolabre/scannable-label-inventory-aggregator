@@ -102,6 +102,8 @@ scannable-label-inventory-aggregator/
       services/
         lf1Contract.js            leitura do texto LF1 e motivo da recusa
         lf1Contract.test.js
+        sourceProcessing.js       processamento de uma foto, do arquivo à fonte gravada
+        sourceProcessing.test.js
     storage/
       indexed-db.js               banco StockVisionDB, tabelas e índices
       indexed-db.test.js
@@ -118,6 +120,11 @@ scannable-label-inventory-aggregator/
     store/
       useSessionStore.js          sessões e conteúdo da sessão aberta
       useSessionStore.test.js
+      useCaptureStore.js          fila das fotos, uma por vez, e erro atual
+      useCaptureStore.test.js
+      captureItem.js              situação, frases e andamento de cada foto da fila
+      captureItem.test.js
+      captureIntegration.test.js  fila com o banco e o leitor reais
     lib/
       app-meta.js                 nome do produto
       cx.js                       junção de classes

@@ -1,5 +1,6 @@
 import { SourceSchema } from '../domain/schemas/sourceSchema.js';
 
+import { createReadings } from './readingRepository.js';
 import { touchSession } from './sessionRepository.js';
 import { STORAGE_RULE_ERRORS, createStorageRuleError, hasErrorName } from './storageError.js';
 
@@ -12,6 +13,14 @@ import { STORAGE_RULE_ERRORS, createStorageRuleError, hasErrorName } from './sto
 /** Fontes da sessao na ordem em que foram processadas. */
 export function listSourcesBySession(db, sessionId) {
   return db.sources.where('sessionId').equals(sessionId).sortBy('processedAt');
+}
+
+/**
+ * Fonte da sessao com este SHA-256, ou `undefined`. Pelo indice unico
+ * `[sessionId+sha256]`, e a mesma foto ja gravada nesta sessao.
+ */
+export function findSourceBySha256(db, sessionId, sha256) {
+  return db.sources.where('[sessionId+sha256]').equals([sessionId, sha256]).first();
 }
 
 /**
@@ -45,6 +54,24 @@ export async function createSource(db, sessionId, source) {
   }
 
   return validated;
+}
+
+/**
+ * Grava a fonte de uma foto e as leituras dela numa transacao so, com as mesmas
+ * regras de `createSource` e `createReadings`: ou a foto entra inteira, ou nada
+ * entra. Uma aba fechada no meio nunca deixa fonte sem as leituras.
+ *
+ * Devolve a sessao como ficou depois da gravacao, com o `updatedAt` novo, a
+ * fonte e as leituras gravadas.
+ */
+export function createSourceWithReadings(db, sessionId, source, readings) {
+  return db.transaction('rw', db.sessions, db.sources, db.readings, async () => {
+    const storedSource = await createSource(db, sessionId, source);
+    const storedReadings = await createReadings(db, sessionId, storedSource.id, readings);
+    const session = await db.sessions.get(sessionId);
+
+    return { session, source: storedSource, readings: storedReadings };
+  });
 }
 
 /**

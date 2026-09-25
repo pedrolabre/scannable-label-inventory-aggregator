@@ -306,3 +306,84 @@ describe('deleteSession', () => {
     });
   });
 });
+
+describe('addProcessedSource', () => {
+  beforeEach(async () => {
+    await state().hydrate();
+    vi.clearAllMocks();
+  });
+
+  function processed(sessionId, updatedAt = '2026-09-24T15:00:00.000Z') {
+    const base = sessionId === 's-recente' ? RECENTE : ANTIGA;
+
+    return {
+      session: { ...base, updatedAt },
+      source: { id: `fonte-nova-${sessionId}`, sessionId },
+      readings: [
+        { id: `leitura-a-${sessionId}`, sourceId: `fonte-nova-${sessionId}` },
+        { id: `leitura-b-${sessionId}`, sourceId: `fonte-nova-${sessionId}` },
+      ],
+    };
+  }
+
+  it('acrescenta a fonte e as leituras à sessão aberta, sem reler o banco', async () => {
+    const result = processed('s-recente');
+
+    await state().addProcessedSource(result);
+
+    expect(state().sources).toEqual([...contentOf('s-recente').sources, result.source]);
+    expect(state().readings).toEqual([...contentOf('s-recente').readings, ...result.readings]);
+    expect(sourceRepository.listSourcesBySession).not.toHaveBeenCalled();
+  });
+
+  it('não repete a mesma foto recebida duas vezes', async () => {
+    const result = processed('s-recente');
+
+    await state().addProcessedSource(result);
+    await state().addProcessedSource(result);
+
+    expect(state().sources).toHaveLength(2);
+    expect(state().readings).toHaveLength(3);
+  });
+
+  it('reordena a lista pela data nova da sessão gravada', async () => {
+    const result = processed('s-antiga');
+
+    await state().addProcessedSource(result);
+
+    expect(state().sessions).toEqual([result.session, RECENTE]);
+  });
+
+  it('só atualiza a lista quando a foto é de outra sessão', async () => {
+    await state().addProcessedSource(processed('s-antiga'));
+
+    expect(state()).toMatchObject({ currentSessionId: 's-recente', ...contentOf('s-recente') });
+  });
+
+  it('relê a sessão quando a carga dela está em andamento', async () => {
+    let release;
+    const blocked = new Promise((resolve) => {
+      release = resolve;
+    });
+    const result = processed('s-antiga');
+
+    // A carga le o banco antes da gravacao da foto e so termina depois dela.
+    sourceRepository.listSourcesBySession.mockImplementationOnce(async () => {
+      await blocked;
+      return contentOf('s-antiga').sources;
+    });
+    sourceRepository.listSourcesBySession.mockImplementationOnce(async () => [
+      ...contentOf('s-antiga').sources,
+      result.source,
+    ]);
+
+    const selecting = state().selectSession('s-antiga');
+    const adding = state().addProcessedSource(result);
+
+    release();
+    await Promise.all([selecting, adding]);
+
+    expect(state().currentSessionId).toBe('s-antiga');
+    expect(state().sources).toEqual([...contentOf('s-antiga').sources, result.source]);
+  });
+});
