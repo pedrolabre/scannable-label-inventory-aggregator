@@ -38,6 +38,9 @@ let pendingHydration = null;
 // trocar de sessao duas vezes seguidas nunca mostra o conteudo da primeira.
 let latestLoad = 0;
 
+// Sessao da carga mais recente enquanto ela nao termina.
+let loadingSessionId = null;
+
 async function readContent(db, sessionId) {
   const [sources, readings, resolutions] = await Promise.all([
     listSourcesBySession(db, sessionId),
@@ -71,6 +74,7 @@ export const useSessionStore = create((set, get) => {
     latestLoad += 1;
     const load = latestLoad;
 
+    loadingSessionId = sessionId;
     set({ isLoading: true, loadError: null });
 
     try {
@@ -87,6 +91,10 @@ export const useSessionStore = create((set, get) => {
       }
 
       throw error;
+    } finally {
+      if (load === latestLoad) {
+        loadingSessionId = null;
+      }
     }
   }
 
@@ -94,6 +102,7 @@ export const useSessionStore = create((set, get) => {
     const stored = await createStoredSession(db(), { name });
 
     latestLoad += 1;
+    loadingSessionId = null;
     set({
       sessions: [stored, ...get().sessions.filter((session) => session.id !== stored.id)],
       currentSessionId: stored.id,
@@ -208,6 +217,44 @@ export const useSessionStore = create((set, get) => {
       }
 
       await openSession(sessions[0].id);
+    },
+
+    /**
+     * Reflete a foto que acabou de ser gravada, com a sessao como ficou depois
+     * da gravacao: a data nova reordena a lista, e a fonte e as leituras entram
+     * no fim do conteudo quando a sessao e a aberta, sem reler o banco.
+     *
+     * Se a mesma sessao esta sendo carregada, a carga pode ter lido o banco
+     * antes da gravacao; entao a sessao e relida, e a carga mais recente vence.
+     */
+    addProcessedSource: ({ session, source, readings = [] }) => {
+      if (session && get().sessions.some((item) => item.id === session.id)) {
+        set({
+          sessions: get()
+            .sessions.map((item) => (item.id === session.id ? session : item))
+            .sort(byMostRecent),
+        });
+      }
+
+      if (source.sessionId === loadingSessionId) {
+        return openSession(source.sessionId).then(
+          () => {},
+          () => {},
+        );
+      }
+
+      if (source.sessionId !== get().currentSessionId) {
+        return Promise.resolve();
+      }
+
+      const known = new Set(get().readings.map((reading) => reading.id));
+
+      set({
+        sources: [...get().sources.filter((item) => item.id !== source.id), source],
+        readings: [...get().readings, ...readings.filter((reading) => !known.has(reading.id))],
+      });
+
+      return Promise.resolve();
     },
   };
 });

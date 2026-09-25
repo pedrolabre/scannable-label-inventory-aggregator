@@ -7,7 +7,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { StockVisionDatabase } from './indexed-db.js';
 import { createReadings } from './readingRepository.js';
 import { createSession } from './sessionRepository.js';
-import { createSource, deleteSource, listSourcesBySession } from './sourceRepository.js';
+import {
+  createSource,
+  createSourceWithReadings,
+  deleteSource,
+  findSourceBySha256,
+  listSourcesBySession,
+} from './sourceRepository.js';
 import { describeStorageError } from './storageError.js';
 
 let db;
@@ -141,6 +147,90 @@ describe('listSourcesBySession', () => {
     await createSource(db, outra.id, READ_SOURCE);
 
     expect(await listSourcesBySession(db, session.id)).toEqual([primeira, segunda]);
+  });
+});
+
+describe('findSourceBySha256', () => {
+  it('acha a foto já gravada na sessão pelo SHA-256, e só nela', async () => {
+    const outra = await createSession(db, { name: 'Depósito' });
+    const stored = await createSource(db, session.id, READ_SOURCE);
+
+    expect(await findSourceBySha256(db, session.id, READ_SOURCE.sha256)).toEqual(stored);
+    expect(await findSourceBySha256(db, outra.id, READ_SOURCE.sha256)).toBeUndefined();
+    expect(await findSourceBySha256(db, session.id, 'ef'.repeat(32))).toBeUndefined();
+  });
+});
+
+describe('createSourceWithReadings', () => {
+  const READINGS = [{ text: 'LF1|A|B|1|||c1' }, { text: 'texto qualquer' }];
+
+  async function counts() {
+    return { sources: await db.sources.count(), readings: await db.readings.count() };
+  }
+
+  it('grava a fonte e as leituras dela e devolve a sessão atualizada', async () => {
+    const stored = await createSourceWithReadings(db, session.id, READ_SOURCE, READINGS);
+
+    expect(stored.source).toEqual(await db.sources.get(stored.source.id));
+    expect(stored.readings.map((reading) => [reading.text, reading.sourceId])).toEqual([
+      ['LF1|A|B|1|||c1', stored.source.id],
+      ['texto qualquer', stored.source.id],
+    ]);
+    expect(stored.session).toEqual({ ...session, updatedAt: '2026-09-24T12:05:00.000Z' });
+    expect(await db.sessions.get(session.id)).toEqual(stored.session);
+  });
+
+  it('grava a foto sem símbolo ou que falhou sem nenhuma leitura', async () => {
+    const lida = await createSourceWithReadings(db, session.id, READ_SOURCE, []);
+    const falhou = await createSourceWithReadings(db, session.id, FAILED_SOURCE, []);
+
+    expect([lida.readings, falhou.readings]).toEqual([[], []]);
+    expect(await counts()).toEqual({ sources: 2, readings: 0 });
+  });
+
+  it('desfaz a fonte quando a gravação das leituras falha no meio', async () => {
+    const failure = new Error('falha injetada');
+    const creating = () => {
+      throw failure;
+    };
+
+    db.readings.hook('creating', creating);
+
+    await expect(createSourceWithReadings(db, session.id, READ_SOURCE, READINGS)).rejects.toBe(
+      failure,
+    );
+
+    db.readings.hook('creating').unsubscribe(creating);
+
+    expect(await counts()).toEqual({ sources: 0, readings: 0 });
+    expect((await db.sessions.get(session.id)).updatedAt).toBe(session.updatedAt);
+    await expect(
+      createSourceWithReadings(db, session.id, READ_SOURCE, READINGS),
+    ).resolves.toBeTruthy();
+  });
+
+  it('desfaz a fonte quando uma leitura não passa no schema', async () => {
+    await expect(
+      createSourceWithReadings(db, session.id, READ_SOURCE, [{ text: 'ok' }, { text: 1 }]),
+    ).rejects.toMatchObject({ name: 'ZodError' });
+
+    expect(await counts()).toEqual({ sources: 0, readings: 0 });
+  });
+
+  it('recusa a mesma foto na sessão sem acrescentar leitura', async () => {
+    await createSourceWithReadings(db, session.id, READ_SOURCE, READINGS);
+
+    await expect(
+      createSourceWithReadings(db, session.id, READ_SOURCE, [{ text: 'outra' }]),
+    ).rejects.toMatchObject({ name: 'DuplicateSourceError' });
+    expect(await counts()).toEqual({ sources: 1, readings: 2 });
+  });
+
+  it('recusa sessão inexistente sem gravar nada', async () => {
+    await expect(
+      createSourceWithReadings(db, crypto.randomUUID(), READ_SOURCE, READINGS),
+    ).rejects.toMatchObject({ name: 'MissingSessionError' });
+    expect(await counts()).toEqual({ sources: 0, readings: 0 });
   });
 });
 
