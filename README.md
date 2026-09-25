@@ -50,6 +50,8 @@ LF1|118789|CANTINHO CAFE RUBI|85990|||c1
 - Zod 3 na validação dos campos lidos de cada etiqueta e de todo registro gravado no banco local.
 - Dexie 4 sobre o IndexedDB, com as sessões, as fotos processadas, as leituras e as resoluções de conflito.
 - Zustand 5 no estado das sessões.
+- zxing-wasm 3 na leitura dos QR Codes, carregado só na primeira foto, com o binário `zxing_reader.wasm` servido pela própria aplicação, em `public/zxing/`.
+- bwip-js nas imagens de teste com QR Codes `LF1`, geradas por `npm run fixtures:qr`.
 - Vitest com jsdom, e fake-indexeddb nos testes do banco local.
 
 ## Comandos
@@ -60,6 +62,7 @@ npm run dev      # servidor de desenvolvimento
 npm test         # suíte de testes
 npm run build    # build de produção em dist/
 npm run preview  # serve o build local
+npm run fixtures:qr  # gera as imagens de teste com QR Codes LF1
 ```
 
 ## Estrutura do Projeto
@@ -76,6 +79,9 @@ scannable-label-inventory-aggregator/
   README.md
   public/
     fonts/            IBM Plex Sans e Space Grotesk, latin e latin-ext
+    zxing/            zxing_reader.wasm, o binário do leitor de QR Code
+  scripts/
+    generate-qr-fixtures.mjs    gera as imagens de teste com QR Codes LF1
   src/
     main.jsx
     App.jsx
@@ -113,8 +119,22 @@ scannable-label-inventory-aggregator/
       useSessionStore.js          sessões e conteúdo da sessão aberta
       useSessionStore.test.js
     lib/
-      app-meta.js     nome do produto
-      cx.js           junção de classes
+      app-meta.js                 nome do produto
+      cx.js                       junção de classes
+      decoderEngine.js            leitor de QR Code, carregado sob demanda
+      decoderEngine.test.js
+      decoder.js                  texto e posição de cada símbolo da imagem
+      decoder.test.js
+      decoderError.js             mensagens das falhas da leitura da foto
+      decoderError.test.js
+      imageLoader.js              pixels da foto, na orientação da câmera
+      imageLoader.test.js
+      sha256.js                   SHA-256 dos bytes do arquivo
+      sha256.test.js
+    test-fixtures/
+      qrFixtures.js               textos das imagens de teste
+      readPngFixture.js           leitura dos PNGs de teste na suíte
+      qr-1.png, qr-4.png, qr-8.png
     styles/
       global.css      faces de fonte e variáveis de densidade
 ```
