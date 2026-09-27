@@ -10,6 +10,7 @@ import { getAppDatabase } from '../storage/indexed-db.js';
 import { createSourceWithReadings, findSourceBySha256 } from '../storage/sourceRepository.js';
 import { STORAGE_RULE_ERRORS, hasErrorName } from '../storage/storageError.js';
 
+import { measureNow, readUsedHeapBytes, timeProcessingDeps } from './captureTiming.js';
 import {
   CAPTURE_ITEM_STATUSES,
   isQueueBlockingError,
@@ -47,6 +48,11 @@ export function yieldToEventLoop() {
   });
 }
 
+/** Tempo da foto inteira, de cada passo que rodou e memoria ao fim. */
+function measurementOf(durationMs, steps, heapBytes) {
+  return { durationMs, steps: steps ? { ...steps } : null, heapBytes: heapBytes ?? null };
+}
+
 /** Implementacoes do navegador e do banco para `processSource`. */
 export function createProcessingDeps(db) {
   return {
@@ -69,16 +75,23 @@ export function createProcessingDeps(db) {
  * - `prepare()`: aquece o leitor quando um lote comeca;
  * - `currentSessionId()`: sessao aberta;
  * - `onStored(outcome)`: reflete a fonte gravada no estado das sessoes;
- * - `yieldToEventLoop()`: pausa entre uma foto e a seguinte.
+ * - `yieldToEventLoop()`: pausa entre uma foto e a seguinte;
+ * - `now()` e `readHeap()`: relogio e memoria da medicao de cada foto.
  */
 export function createCaptureStore(overrides = {}) {
   const deps = {
-    process: (photo, sessionId) =>
-      processSource(photo, sessionId, createProcessingDeps(getAppDatabase())),
+    process: async (photo, sessionId) => {
+      const { deps: timed, timings } = timeProcessingDeps(createProcessingDeps(getAppDatabase()));
+      const outcome = await processSource(photo, sessionId, timed);
+
+      return { ...outcome, timings };
+    },
     prepare: () => prepareDecoder(),
     currentSessionId: () => useSessionStore.getState().currentSessionId,
     onStored: (outcome) => useSessionStore.getState().addProcessedSource(outcome),
     yieldToEventLoop,
+    now: measureNow,
+    readHeap: readUsedHeapBytes,
     ...overrides,
   };
 
@@ -98,8 +111,13 @@ export function createCaptureStore(overrides = {}) {
 
     /** Processa uma foto e devolve `true` quando a fila precisa parar. */
     async function processItem(item) {
-      update(item.id, { status: CAPTURE_ITEM_STATUSES.PROCESSING, message: null });
+      update(item.id, {
+        status: CAPTURE_ITEM_STATUSES.PROCESSING,
+        message: null,
+        measurement: null,
+      });
 
+      const startedAt = deps.now();
       let outcome;
 
       try {
@@ -108,7 +126,10 @@ export function createCaptureStore(overrides = {}) {
         outcome = { status: PROCESSING_OUTCOMES.ERROR, step: null, error };
       }
 
-      const result = itemResultOf(outcome);
+      const result = {
+        ...itemResultOf(outcome),
+        measurement: measurementOf(deps.now() - startedAt, outcome.timings, deps.readHeap()),
+      };
       const isError = result.status === CAPTURE_ITEM_STATUSES.ERROR;
 
       // O arquivo so continua em memoria enquanto a foto pode ser tentada de novo.

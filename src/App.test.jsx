@@ -1,42 +1,22 @@
 // @vitest-environment jsdom
 
-import { act } from 'react';
-import { createRoot } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import App from './App.jsx';
 import { APP_NAME } from './lib/app-meta.js';
+import { useReactRoot } from './test-fixtures/reactRoot.js';
 
-globalThis.IS_REACT_ACT_ENVIRONMENT = true;
-
-let container;
-let root;
-
-beforeEach(() => {
-  container = document.createElement('div');
-  document.body.appendChild(container);
-  root = createRoot(container);
-});
+const view = useReactRoot();
 
 afterEach(() => {
-  act(() => {
-    root.unmount();
-  });
-  container.remove();
   vi.restoreAllMocks();
 });
 
-async function render() {
-  await act(async () => {
-    root.render(<App />);
-  });
-}
-
 describe('App', () => {
   it('mostra o nome do produto como título da tela', async () => {
-    await render();
+    await view.render(<App />);
 
-    const titulo = container.querySelector('h1');
+    const titulo = view.container.querySelector('h1');
 
     expect(titulo).toBeTruthy();
     expect(titulo.textContent).toBe(APP_NAME);
@@ -44,18 +24,33 @@ describe('App', () => {
   });
 
   it('avisa que tudo roda no aparelho, sem enviar nada', async () => {
-    await render();
+    await view.render(<App />);
 
-    const aviso = container.querySelector('p');
+    const aviso = view.container.querySelector('header p');
 
     expect(aviso.textContent).toContain('Tudo roda neste aparelho');
     expect(aviso.textContent).toContain('sem enviar nada');
   });
 
+  it('mostra a sessão, a entrada de fotos e a fila numa área que rola', async () => {
+    await view.render(<App />);
+
+    const main = view.container.querySelector('main');
+    const titles = [...main.querySelectorAll('h2')].map((title) => title.textContent);
+    const pickers = [...main.querySelectorAll('input[type="file"]')].map(
+      (input) => input.labels[0].textContent,
+    );
+
+    expect(main.className).toContain('overflow-y-auto');
+    expect(titles).toEqual(['Sessão aberta', 'Fotos das etiquetas', 'Fila de fotos']);
+    expect(pickers).toEqual(['Fotografar', 'Enviar fotos']);
+    expect(main.textContent).toContain('Nenhuma foto neste lote.');
+  });
+
   it('monta a tela sem nenhuma chamada de rede', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
 
-    await render();
+    await view.render(<App />);
 
     expect(fetchSpy).not.toHaveBeenCalled();
   });

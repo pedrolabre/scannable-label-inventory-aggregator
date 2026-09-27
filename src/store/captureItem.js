@@ -135,5 +135,6 @@ export function newCaptureItem(id, file, origin, sessionId) {
     summary: null,
     warnings: [],
     failureReason: null,
+    measurement: null,
   };
 }
