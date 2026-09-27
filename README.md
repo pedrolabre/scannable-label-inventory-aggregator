@@ -126,6 +126,12 @@ scannable-label-inventory-aggregator/
         sourceProcessing.test.js
         sourceReadings.js         textos de uma foto separados em válidos e rejeitados
         sourceReadings.test.js
+        copyIdentity.js           exemplares pelo texto inteiro, com leituras, fotos e aviso de reimpressão
+        copyIdentity.test.js
+        boxOverlap.js             sobreposição das caixas de dois símbolos da mesma foto
+        boxOverlap.test.js
+        inventoryAggregation.js   resumo por produto com quantidade e total em centavos
+        inventoryAggregation.test.js
     storage/
       indexed-db.js               banco StockVisionDB, tabelas e índices
       indexed-db.test.js
@@ -163,10 +169,13 @@ scannable-label-inventory-aggregator/
       imageLoader.test.js
       sha256.js                   SHA-256 dos bytes do arquivo
       sha256.test.js
+      currency.js                 valor em centavos escrito como R$ 1.234,56
+      currency.test.js
     test-fixtures/
       qrFixtures.js               textos das imagens de teste
       readPngFixture.js           leitura dos PNGs de teste na suíte
       reactRoot.js                montagem dos componentes na suíte
+      readingFixtures.js          leituras sintéticas para os testes do domínio
       qr-1.png, qr-4.png, qr-8.png
     styles/
       global.css      faces de fonte e variáveis de densidade
