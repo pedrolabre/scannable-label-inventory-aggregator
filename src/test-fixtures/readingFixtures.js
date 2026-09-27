@@ -1,6 +1,7 @@
 /**
- * Leituras sinteticas para os testes do dominio. Os textos, codigos e precos
- * sao inventados, e cada leitura tem so os campos do registro gravado.
+ * Leituras e fontes sinteticas para os testes do dominio. Os textos, codigos,
+ * precos e nomes de arquivo sao inventados, e cada registro tem so os campos do
+ * registro gravado.
  */
 
 import { QR_FIXTURES } from './qrFixtures.js';
@@ -31,6 +32,31 @@ export function readingOf(id, sourceId, text, position) {
   const reading = { id, sessionId: SESSION_ID, sourceId, text, readAt: READ_AT };
 
   return position === undefined ? reading : { ...reading, position };
+}
+
+/**
+ * Uma fonte como o banco a guarda: foto lida, ou com falha quando
+ * `failureReason` vem preenchido. O nome do arquivo e a data do processamento
+ * podem ser trocados; o SHA-256 e ficticio.
+ */
+export function sourceOf(
+  id,
+  { fileName = `${id}.jpg`, origin = 'file', processedAt = READ_AT, failureReason } = {},
+) {
+  const source = {
+    id,
+    sessionId: SESSION_ID,
+    fileName,
+    byteSize: 1024,
+    lastModified: 0,
+    sha256: '0'.repeat(64),
+    origin,
+    processedAt,
+  };
+
+  return failureReason === undefined
+    ? { ...source, status: 'read', width: 1200, height: 900 }
+    : { ...source, status: 'failed', failureReason };
 }
 
 /** Lado de cada caixa e passo da grade das leituras das imagens de teste. */

@@ -136,6 +136,11 @@ scannable-label-inventory-aggregator/
         conflictDetection.test.js
         conflictResolution.js     escolhas do operador aplicadas ao resumo e contagem dos conflitos
         conflictResolution.test.js
+        inventoryReport.js        relatório da sessão: cabeçalho, totais, conflitos e indicador de exportação
+        inventoryReport.test.js
+        inventoryReport.cases.test.js
+        reportSections.js         linhas das seções do relatório e corte do texto rejeitado
+        reportSections.test.js
     storage/
       indexed-db.js               banco StockVisionDB, tabelas e índices
       indexed-db.test.js
@@ -183,7 +188,7 @@ scannable-label-inventory-aggregator/
       qrFixtures.js               textos das imagens de teste
       readPngFixture.js           leitura dos PNGs de teste na suíte
       reactRoot.js                montagem dos componentes na suíte
-      readingFixtures.js          leituras sintéticas para os testes do domínio
+      readingFixtures.js          leituras e fontes sintéticas para os testes do domínio
       qr-1.png, qr-4.png, qr-8.png
     styles/
       global.css      faces de fonte e variáveis de densidade
