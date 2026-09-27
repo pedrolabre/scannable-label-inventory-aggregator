@@ -14,22 +14,35 @@ export function listResolutionsBySession(db, sessionId) {
 
 /**
  * Grava a escolha do operador para um produto, substituindo a anterior do
- * mesmo codigo, e marca a sessao como alterada.
+ * mesmo codigo, e marca a sessao como alterada. Devolve a sessao como ficou
+ * depois da gravacao, com o `updatedAt` novo, e a resolucao gravada.
  */
 export async function saveResolution(db, resolution) {
   const validated = ResolutionSchema.parse(resolution);
 
-  await db.transaction('rw', db.sessions, db.resolutions, async () => {
-    await touchSession(db, validated.sessionId);
+  const session = await db.transaction('rw', db.sessions, db.resolutions, async () => {
+    const touched = await touchSession(db, validated.sessionId);
+
     await db.resolutions.put(validated);
+
+    return touched;
   });
 
-  return validated;
+  return { session, resolution: validated };
 }
 
-export function deleteResolution(db, sessionId, systemCode) {
-  return db.transaction('rw', db.sessions, db.resolutions, async () => {
-    await touchSession(db, sessionId);
+/**
+ * Apaga a escolha do produto e marca a sessao como alterada. Devolve a sessao
+ * como ficou depois da gravacao.
+ */
+export async function deleteResolution(db, sessionId, systemCode) {
+  const session = await db.transaction('rw', db.sessions, db.resolutions, async () => {
+    const touched = await touchSession(db, sessionId);
+
     await db.resolutions.delete([sessionId, systemCode]);
+
+    return touched;
   });
+
+  return { session };
 }

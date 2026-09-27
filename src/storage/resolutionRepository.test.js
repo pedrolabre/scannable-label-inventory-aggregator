@@ -33,11 +33,13 @@ function resolution(systemCode, choices) {
 }
 
 describe('saveResolution', () => {
-  it('grava a escolha e atualiza a data da sessão', async () => {
+  it('grava a escolha, atualiza a data da sessão e devolve as duas como ficaram', async () => {
     const stored = await saveResolution(db, resolution('118789', { priceInCentavos: 85990 }));
 
-    expect(await db.resolutions.get([session.id, '118789'])).toEqual(stored);
+    expect(await db.resolutions.get([session.id, '118789'])).toEqual(stored.resolution);
+    expect(stored.resolution).toEqual(resolution('118789', { priceInCentavos: 85990 }));
     expect((await db.sessions.get(session.id)).updatedAt).toBe('2026-09-24T12:30:00.000Z');
+    expect(stored.session).toEqual(await db.sessions.get(session.id));
   });
 
   it('substitui a escolha anterior do mesmo produto', async () => {
@@ -93,12 +95,13 @@ describe('deleteResolution', () => {
     await saveResolution(db, resolution('B-2', { ncm: null }));
 
     vi.setSystemTime(new Date('2026-09-24T13:00:00.000Z'));
-    await deleteResolution(db, session.id, 'A-1');
+    const deleted = await deleteResolution(db, session.id, 'A-1');
 
     expect(await listResolutionsBySession(db, session.id)).toEqual([
       resolution('B-2', { ncm: null }),
     ]);
     expect((await db.sessions.get(session.id)).updatedAt).toBe('2026-09-24T13:00:00.000Z');
+    expect(deleted).toEqual({ session: await db.sessions.get(session.id) });
   });
 
   it('recusa sessão inexistente', async () => {
