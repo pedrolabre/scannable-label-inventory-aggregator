@@ -3,7 +3,11 @@ import { create } from 'zustand';
 import { defaultSessionName } from '../domain/schemas/sessionSchema.js';
 import { getAppDatabase } from '../storage/indexed-db.js';
 import { listReadingsBySession } from '../storage/readingRepository.js';
-import { listResolutionsBySession } from '../storage/resolutionRepository.js';
+import {
+  deleteResolution,
+  listResolutionsBySession,
+  saveResolution,
+} from '../storage/resolutionRepository.js';
 import {
   createSession as createStoredSession,
   deleteSession as deleteStoredSession,
@@ -16,6 +20,15 @@ import {
   createStorageRuleError,
   describeStorageReadError,
 } from '../storage/storageError.js';
+
+import {
+  assertChoiceAvailable,
+  assertOpenSession,
+  choicesWith,
+  choicesWithout,
+  removeResolution,
+  upsertResolution,
+} from './resolutionChoices.js';
 
 /**
  * Sessoes gravadas no dispositivo e o conteudo da sessao aberta: fontes,
@@ -112,6 +125,58 @@ export const useSessionStore = create((set, get) => {
     });
 
     return stored;
+  }
+
+  /**
+   * Reflete uma resolucao gravada ou apagada, com a sessao como ficou depois da
+   * gravacao: a data nova reordena a lista, e as resolucoes da sessao aberta
+   * mudam sem reler o banco. Se a mesma sessao esta sendo carregada, ela e
+   * relida, como na foto recem-gravada.
+   */
+  function reflectResolutionWrite(session, updateResolutions) {
+    set({
+      sessions: get()
+        .sessions.map((item) => (item.id === session.id ? session : item))
+        .sort(byMostRecent),
+    });
+
+    if (session.id === loadingSessionId) {
+      return openSession(session.id).then(
+        () => {},
+        () => {},
+      );
+    }
+
+    if (session.id === get().currentSessionId) {
+      set({ resolutions: updateResolutions(get().resolutions) });
+    }
+
+    return Promise.resolve();
+  }
+
+  /** Grava as escolhas do produto, ou apaga o registro quando nao sobra nenhuma. */
+  async function storeChoices(sessionId, systemCode, choices) {
+    if (Object.keys(choices).length === 0) {
+      const { session } = await writeAndReconcileOnFailure(
+        () => deleteResolution(db(), sessionId, systemCode),
+        get().hydrate,
+      );
+
+      await reflectResolutionWrite(session, (list) => removeResolution(list, systemCode));
+
+      return null;
+    }
+
+    const stored = await writeAndReconcileOnFailure(
+      () => saveResolution(db(), { sessionId, systemCode, choices }),
+      get().hydrate,
+    );
+
+    await reflectResolutionWrite(stored.session, (list) =>
+      upsertResolution(list, stored.resolution),
+    );
+
+    return stored.resolution;
   }
 
   async function loadSessions() {
@@ -255,6 +320,37 @@ export const useSessionStore = create((set, get) => {
       });
 
       return Promise.resolve();
+    },
+
+    /**
+     * Grava a escolha do operador para um campo de um produto da sessao aberta,
+     * somada as escolhas ja gravadas do mesmo produto. O campo precisa divergir
+     * nas leituras da sessao, e o valor precisa ser uma das variantes; `null`
+     * em `ean` ou `ncm` escolhe a variante sem o campo. Devolve a resolucao
+     * gravada.
+     */
+    resolveConflict: async (sessionId, systemCode, field, value) => {
+      assertOpenSession(get().currentSessionId, sessionId);
+      assertChoiceAvailable(get().readings, systemCode, field, value);
+
+      return storeChoices(
+        sessionId,
+        systemCode,
+        choicesWith(get().resolutions, systemCode, field, value),
+      );
+    },
+
+    /**
+     * Retira a escolha de um campo do produto na sessao aberta, mesmo quando o
+     * conflito nao existe mais. Devolve a resolucao que sobrou, ou `null`; campo
+     * sem escolha gravada nao grava nada.
+     */
+    clearResolution: async (sessionId, systemCode, field) => {
+      assertOpenSession(get().currentSessionId, sessionId);
+
+      const remaining = choicesWithout(get().resolutions, systemCode, field);
+
+      return remaining === undefined ? null : storeChoices(sessionId, systemCode, remaining);
     },
   };
 });

@@ -132,6 +132,10 @@ scannable-label-inventory-aggregator/
         boxOverlap.test.js
         inventoryAggregation.js   resumo por produto com quantidade e total em centavos
         inventoryAggregation.test.js
+        conflictDetection.js      variantes de nome, preço, EAN e NCM por produto, com os exemplares de cada uma
+        conflictDetection.test.js
+        conflictResolution.js     escolhas do operador aplicadas ao resumo e contagem dos conflitos
+        conflictResolution.test.js
     storage/
       indexed-db.js               banco StockVisionDB, tabelas e índices
       indexed-db.test.js
@@ -146,8 +150,12 @@ scannable-label-inventory-aggregator/
       storageError.js             mensagens das falhas do armazenamento
       storageError.test.js
     store/
-      useSessionStore.js          sessões e conteúdo da sessão aberta
+      useSessionStore.js          sessões, conteúdo da sessão aberta e escolhas nos conflitos
       useSessionStore.test.js
+      useSessionStore.resolution.test.js
+      resolutionChoices.js        conferência, soma e retirada das escolhas do operador
+      resolutionChoices.test.js
+      resolutionIntegration.test.js  escolha gravada e relida com o banco real
       useCaptureStore.js          fila das fotos, uma por vez, e erro atual
       useCaptureStore.test.js
       captureItem.js              situação, frases e andamento de cada foto da fila

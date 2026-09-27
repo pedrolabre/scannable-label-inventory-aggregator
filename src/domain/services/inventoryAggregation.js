@@ -47,7 +47,7 @@ function agreedValues(copies) {
  * o resultado cabe no inteiro seguro; acima disso o total fica sem valor e
  * marcado como fora do limite.
  */
-function totalOf(quantity, priceInCentavos) {
+export function totalOf(quantity, priceInCentavos) {
   if (priceInCentavos === null) {
     return { totalInCentavos: null, totalOutOfRange: false };
   }
