@@ -86,6 +86,26 @@ scannable-label-inventory-aggregator/
     main.jsx
     App.jsx
     App.test.jsx
+    components/
+      capture/
+        CaptureButtons.jsx        Fotografar e Enviar fotos
+        CaptureButtons.test.jsx
+        CaptureSession.jsx        sessão aberta e abertura de sessão nova
+        CaptureSession.test.jsx
+        SourceQueue.jsx           andamento, erro atual e fotos do lote
+        SourceQueue.test.jsx
+        SourceRow.jsx             situação e textos lidos de cada foto
+        SourceRow.test.jsx
+        useImageIntake.js         entrega das fotos escolhidas à fila
+        useImageIntake.test.jsx
+        captureText.js            contagens, tempos e medição em colunas
+        captureText.test.js
+      ui/
+        Button.jsx                botão nas variantes principal, apoio e perigo
+        Button.test.jsx
+        InlineAlert.jsx           aviso de erro junto da ação
+        InlineAlert.test.jsx
+        focusClasses.js           realce de foco compartilhado
     domain/
       schemas/
         commonFields.js           campos reutilizáveis dos schemas
@@ -104,6 +124,8 @@ scannable-label-inventory-aggregator/
         lf1Contract.test.js
         sourceProcessing.js       processamento de uma foto, do arquivo à fonte gravada
         sourceProcessing.test.js
+        sourceReadings.js         textos de uma foto separados em válidos e rejeitados
+        sourceReadings.test.js
     storage/
       indexed-db.js               banco StockVisionDB, tabelas e índices
       indexed-db.test.js
@@ -124,6 +146,9 @@ scannable-label-inventory-aggregator/
       useCaptureStore.test.js
       captureItem.js              situação, frases e andamento de cada foto da fila
       captureItem.test.js
+      captureTiming.js            tempo de cada passo e memória por foto
+      captureTiming.test.js
+      useCaptureStore.timing.test.js
       captureIntegration.test.js  fila com o banco e o leitor reais
     lib/
       app-meta.js                 nome do produto
@@ -141,6 +166,7 @@ scannable-label-inventory-aggregator/
     test-fixtures/
       qrFixtures.js               textos das imagens de teste
       readPngFixture.js           leitura dos PNGs de teste na suíte
+      reactRoot.js                montagem dos componentes na suíte
       qr-1.png, qr-4.png, qr-8.png
     styles/
       global.css      faces de fonte e variáveis de densidade
