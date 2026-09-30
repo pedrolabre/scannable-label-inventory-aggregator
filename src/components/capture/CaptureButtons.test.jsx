@@ -65,4 +65,13 @@ describe('CaptureButtons', () => {
       [sent, 'file'],
     ]);
   });
+
+  it('orienta o enquadramento logo abaixo dos botões de foto', async () => {
+    await view.render(<CaptureButtons enqueue={vi.fn()} />);
+
+    const guidance = view.container.querySelector('[data-orientacao]');
+
+    expect(guidance.textContent).toBe('Enquadre a folha de frente, inteira e nítida.');
+    expect(guidance.previousElementSibling.querySelectorAll('input[type="file"]')).toHaveLength(2);
+  });
 });

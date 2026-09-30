@@ -56,15 +56,10 @@ describe('SourceRow', () => {
     expect((await renderRow(item({ status: 'processing' }))).textContent).toContain('processando');
   });
 
-  it('lista os textos válidos e os rejeitados com o motivo, com tamanho e contagem, sem o tempo', async () => {
+  it('mostra a situação e a contagem da foto lida, sem tamanho nem textos e sem o tempo', async () => {
     useSessionStore.setState({
-      sources: [{ id: 'fonte-1', sessionId: SESSION, width: 4032, height: 3024 }],
-      readings: [
-        reading('l1', 'LF1|DEMO-005|MAÇÃ FUJI KG|1099|||c1'),
-        reading('l2', 'LF2|DEMO-004|X|1|||c1'),
-        reading('l3', 'LF1|DEMO-001||1899|||c1'),
-        reading('l9', 'LF1|OUTRA|FOTO|1|||c1', 'fonte-2'),
-      ],
+      currentSessionId: 'sessao-2',
+      readings: [reading('l1', 'LF1|DEMO-005|MAÇÃ FUJI KG|1099|||c1')],
     });
 
     const row = await renderRow(
@@ -75,20 +70,13 @@ describe('SourceRow', () => {
         measurement: { durationMs: 1840, steps: { load: 310, decode: 1490 }, heapBytes: null },
       }),
     );
-    const lists = [...row.querySelectorAll('ul')];
 
     expect(row.textContent).toContain('lida');
-    expect(row.textContent).toContain('4032 × 3024 px (12,2 MP)');
-    expect(row.textContent).toContain('3 símbolos: 1 válido, 2 rejeitados; 3 com posição');
+    expect(row.textContent).toContain('3 símbolos: 1 válido, 2 rejeitados');
+    expect(row.textContent).not.toContain('com posição');
+    expect(row.textContent).not.toContain('MAÇÃ FUJI KG');
     expect(row.textContent).not.toContain('Tempo:');
-    expect(lists).toHaveLength(2);
-    expect([...lists[0].children].map((li) => li.textContent)).toEqual([
-      'LF1|DEMO-005|MAÇÃ FUJI KG|1099|||c1',
-    ]);
-    expect([...lists[1].children].map((li) => li.textContent)).toEqual([
-      'LF2|DEMO-004|X|1|||c1 — versão não suportada',
-      'LF1|DEMO-001||1899|||c1 — campo inválido: nome',
-    ]);
+    expect(row.querySelectorAll('ul')).toHaveLength(0);
   });
 
   it('avisa a foto sem nenhum símbolo', async () => {
@@ -140,23 +128,11 @@ describe('SourceRow', () => {
     expect(failed.textContent).toContain('A leitura desta foto falhou. Tente de novo.');
   });
 
-  it('exibe texto com marcação como texto, sem criar elemento', async () => {
-    const markup = '<img src=x onerror="alert(1)"><b>LF1</b>';
+  it('exibe o nome do arquivo com marcação como texto, sem criar elemento', async () => {
+    const row = await renderRow(item({ fileName: '<b>foto</b>.jpg', status: 'pending' }));
 
-    useSessionStore.setState({ readings: [reading('l1', markup), reading('l2', '')] });
-
-    const row = await renderRow(
-      item({
-        status: 'read',
-        sourceId: 'fonte-1',
-        summary: { symbolCount: 2, validCount: 0, rejectedCount: 2 },
-      }),
-    );
-
-    expect(row.querySelector('img')).toBeNull();
     expect(row.querySelector('b')).toBeNull();
-    expect(row.textContent).toContain(`${markup} — não é LF1`);
-    expect(row.textContent).toContain('(texto vazio) — não é LF1');
+    expect(row.textContent).toContain('<b>foto</b>.jpg');
   });
 
   it('avisa quando a foto foi gravada em outra sessão', async () => {

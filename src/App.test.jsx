@@ -64,7 +64,7 @@ describe('App', () => {
     expect(view.container.querySelector('footer[aria-label="Resumo da sessão"]')).toBeTruthy();
   });
 
-  it('põe a sessão, a entrada de fotos, o aviso do aparelho e a fila na coluna Entrada', async () => {
+  it('põe a sessão, a entrada de fotos, o aviso do aparelho, o lote e as fotos da sessão na coluna Entrada', async () => {
     await view.render(<App />);
 
     const intake = column('entrada');
@@ -73,7 +73,12 @@ describe('App', () => {
       (input) => input.labels[0].textContent,
     );
 
-    expect(titles).toEqual(['Sessão aberta', 'Fotos das etiquetas', 'Fila de fotos']);
+    expect(titles).toEqual([
+      'Sessão aberta',
+      'Fotos das etiquetas',
+      'Fila de fotos',
+      'Fotos da sessão',
+    ]);
     expect(pickers).toEqual(['Fotografar', 'Enviar fotos']);
     expect(intake.querySelector('[data-aviso-aparelho]').textContent).toContain(
       'Tudo roda neste aparelho',
@@ -149,5 +154,71 @@ describe('App', () => {
     await view.render(<App />);
 
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('abre o diálogo de sessões pela Entrada, um por vez, e o Esc devolve o foco ao botão', async () => {
+    openSessionWith([]);
+
+    await view.render(<App />);
+
+    const trigger = [...column('entrada').querySelectorAll('button')].find(
+      (button) => button.textContent === 'Sessões',
+    );
+
+    await view.focus(trigger);
+    await view.click(trigger);
+
+    const dialogs = document.querySelectorAll('[role="dialog"]');
+
+    expect(dialogs).toHaveLength(1);
+    expect(dialogs[0].querySelector('h2').textContent).toBe('Sessões');
+    expect(document.activeElement.getAttribute('aria-label')).toBe('Fechar');
+
+    await view.press('Escape');
+
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  it('refaz a linha de estado e a coluna Produtos na hora em que uma foto sai da sessão', async () => {
+    const text = (code, copy) =>
+      lf1Text({ systemCode: code, displayName: `PRODUTO ${code}`, price: 1000, copy });
+
+    openSessionWith(
+      [
+        readingOf('l1', 'f1', text('A-1', 'c1')),
+        readingOf('l2', 'f2', text('B-2', 'c1')),
+        readingOf('l3', 'f2', text('B-2', 'c2')),
+      ],
+      [sourceOf('f1'), sourceOf('f2')],
+    );
+    useSessionStore.setState({
+      removeSource: vi.fn(async (sessionId, sourceId) => {
+        const state = useSessionStore.getState();
+
+        useSessionStore.setState({
+          sources: state.sources.filter((source) => source.id !== sourceId),
+          readings: state.readings.filter((reading) => reading.sourceId !== sourceId),
+        });
+      }),
+    });
+
+    await view.render(<App />);
+
+    expect(statusValue('fotos')).toBe('2');
+    expect(statusValue('exemplares')).toBe('3');
+
+    await view.click(column('entrada').querySelector('[data-fonte="f2"] [data-remover]'));
+    await view.click(
+      [...document.querySelectorAll('[role="dialog"] button')].find(
+        (button) => button.textContent === 'Remover foto',
+      ),
+    );
+
+    expect(statusValue('fotos')).toBe('1');
+    expect(statusValue('exemplares')).toBe('1');
+    expect(statusValue('produtos')).toBe('1');
+    expect(statusValue('valor')).toBe('R$ 10,00');
+    expect(column('produtos').textContent).toContain('1 produto lido nesta sessão.');
   });
 });

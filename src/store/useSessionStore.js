@@ -14,7 +14,7 @@ import {
   listSessions,
   renameSession as renameStoredSession,
 } from '../storage/sessionRepository.js';
-import { listSourcesBySession } from '../storage/sourceRepository.js';
+import { deleteSource, listSourcesBySession } from '../storage/sourceRepository.js';
 import {
   STORAGE_RULE_ERRORS,
   createStorageRuleError,
@@ -29,6 +29,7 @@ import {
   removeResolution,
   upsertResolution,
 } from './resolutionChoices.js';
+import { withoutSource } from './sourceRemoval.js';
 
 /**
  * Sessoes gravadas no dispositivo e o conteudo da sessao aberta: fontes,
@@ -128,12 +129,13 @@ export const useSessionStore = create((set, get) => {
   }
 
   /**
-   * Reflete uma resolucao gravada ou apagada, com a sessao como ficou depois da
-   * gravacao: a data nova reordena a lista, e as resolucoes da sessao aberta
-   * mudam sem reler o banco. Se a mesma sessao esta sendo carregada, ela e
-   * relida, como na foto recem-gravada.
+   * Reflete uma gravacao no conteudo de uma sessao, com a sessao como ficou
+   * depois dela: a data nova reordena a lista, e o conteudo da sessao aberta
+   * muda sem reler o banco (`updateContent` recebe o estado e devolve o que
+   * troca). Se a mesma sessao esta sendo carregada, ela e relida, como na foto
+   * recem-gravada.
    */
-  function reflectResolutionWrite(session, updateResolutions) {
+  function reflectSessionWrite(session, updateContent) {
     set({
       sessions: get()
         .sessions.map((item) => (item.id === session.id ? session : item))
@@ -148,7 +150,7 @@ export const useSessionStore = create((set, get) => {
     }
 
     if (session.id === get().currentSessionId) {
-      set({ resolutions: updateResolutions(get().resolutions) });
+      set(updateContent(get()));
     }
 
     return Promise.resolve();
@@ -162,7 +164,9 @@ export const useSessionStore = create((set, get) => {
         get().hydrate,
       );
 
-      await reflectResolutionWrite(session, (list) => removeResolution(list, systemCode));
+      await reflectSessionWrite(session, (state) => ({
+        resolutions: removeResolution(state.resolutions, systemCode),
+      }));
 
       return null;
     }
@@ -172,9 +176,9 @@ export const useSessionStore = create((set, get) => {
       get().hydrate,
     );
 
-    await reflectResolutionWrite(stored.session, (list) =>
-      upsertResolution(list, stored.resolution),
-    );
+    await reflectSessionWrite(stored.session, (state) => ({
+      resolutions: upsertResolution(state.resolutions, stored.resolution),
+    }));
 
     return stored.resolution;
   }
@@ -320,6 +324,20 @@ export const useSessionStore = create((set, get) => {
       });
 
       return Promise.resolve();
+    },
+
+    /**
+     * Apaga uma foto da sessao com as leituras dela. A data nova da sessao
+     * reordena a lista, e a foto e as leituras saem do conteudo da sessao
+     * aberta sem reler o banco; o relatorio, derivado dele, se refaz na hora.
+     */
+    removeSource: async (sessionId, sourceId) => {
+      const { session } = await writeAndReconcileOnFailure(
+        () => deleteSource(db(), sessionId, sourceId),
+        get().hydrate,
+      );
+
+      await reflectSessionWrite(session, (state) => withoutSource(state, sourceId));
     },
 
     /**

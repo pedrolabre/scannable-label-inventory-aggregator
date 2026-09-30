@@ -15,7 +15,8 @@ Em desenvolvimento inicial.
 - Divergência de nome, preço, EAN ou NCM no mesmo código é resolvida na tela antes da exportação.
 - Símbolos fora do formato ficam numa lista de rejeitados, com o motivo.
 - Exportação em CSV, XML e PDF.
-- Sessões de inventário guardadas no IndexedDB. As fotos não são guardadas.
+- Sessões de inventário guardadas no IndexedDB, abertas, criadas, renomeadas e apagadas num diálogo, com o nome padrão de data e hora. As fotos não são guardadas.
+- Fotos da sessão listadas com os textos lidos; remover uma foto tira também os textos dela, e os totais se refazem na hora.
 - PWA instalável e utilizável offline.
 
 ## Formato `LF1`
@@ -100,25 +101,45 @@ scannable-label-inventory-aggregator/
         StatusBar.jsx             fotos, exemplares, produtos, valor total e conflitos abertos
         StatusBar.test.jsx
       capture/
-        CaptureColumn.jsx         coluna Entrada: sessão, fotos e fila
+        CaptureColumn.jsx         coluna Entrada: sessão, fotos, lote e fotos da sessão
         CaptureColumn.test.jsx
-        CaptureButtons.jsx        Fotografar e Enviar fotos
+        CaptureButtons.jsx        Fotografar, Enviar fotos e orientação de enquadramento
         CaptureButtons.test.jsx
-        CaptureSession.jsx        sessão aberta e abertura de sessão nova
-        CaptureSession.test.jsx
-        SourceQueue.jsx           andamento, erro atual e fotos do lote
+        SourceQueue.jsx           andamento, erro atual e fotos do lote ainda fora da sessão
         SourceQueue.test.jsx
-        SourceRow.jsx             situação e textos lidos de cada foto
+        SourceRow.jsx             situação e frase de cada foto do lote
         SourceRow.test.jsx
+        SessionSources.jsx        fotos gravadas na sessão aberta e remoção com confirmação
+        SessionSources.test.jsx
+        SessionSourceRow.jsx      situação, tamanho e textos lidos de cada foto gravada
+        SessionSourceRow.test.jsx
+        sourceDisplay.jsx         etiqueta de situação, contagens e lista de textos das fotos
         MeasurementDetails.jsx    tempo de cada foto e cópia da medição, recolhidos
         MeasurementDetails.test.jsx
         useImageIntake.js         entrega das fotos escolhidas à fila
         useImageIntake.test.jsx
         captureText.js            contagens, tempos e medição em colunas
         captureText.test.js
+      sessions/
+        SessionPicker.jsx         sessão aberta e botão Sessões no topo da Entrada
+        SessionPicker.test.jsx
+        SessionDialog.jsx         abrir, criar, renomear e apagar sessões, com a confirmação
+        SessionDialog.test.jsx
+        SessionRow.jsx            linha da sessão, com o renomear na própria linha
+        SessionRow.test.jsx
+        sessionText.js            data da alteração, conferência e contador do nome
+        sessionText.test.js
       ui/
         Button.jsx                botão nas variantes principal, apoio e perigo
         Button.test.jsx
+        IconButton.jsx            botão só com ícone, nomeado pelo rótulo
+        IconButton.test.jsx
+        ModalShell.jsx            diálogo com foco preso, Esc e foco devolvido ao gatilho
+        ModalShell.test.jsx
+        ConfirmModal.jsx          pergunta antes de remover dados
+        ConfirmModal.test.jsx
+        Field.jsx                 rótulo, campo de texto, dica e erro
+        Field.test.jsx
         InlineAlert.jsx           aviso de erro junto da ação
         InlineAlert.test.jsx
         SegmentedControl.jsx      escolha única entre poucas opções, com as setas
@@ -129,7 +150,7 @@ scannable-label-inventory-aggregator/
         commonFields.js           campos reutilizáveis dos schemas
         lf1FieldsSchema.js        regras de cada campo LF1
         lf1FieldsSchema.test.js
-        sessionSchema.js          sessão de inventário e nome padrão
+        sessionSchema.js          sessão de inventário e nome padrão com data e hora
         sessionSchema.test.js
         sourceSchema.js           metadados da foto processada
         sourceSchema.test.js
@@ -164,7 +185,7 @@ scannable-label-inventory-aggregator/
       indexed-db.test.js
       sessionRepository.js        sessões e remoção em cascata
       sessionRepository.test.js
-      sourceRepository.js         fotos da sessão, sem os bytes da imagem
+      sourceRepository.js         fotos da sessão, sem os bytes da imagem, e remoção com as leituras
       sourceRepository.test.js
       readingRepository.js        leituras de cada foto
       readingRepository.test.js
@@ -173,9 +194,13 @@ scannable-label-inventory-aggregator/
       storageError.js             mensagens das falhas do armazenamento
       storageError.test.js
     store/
-      useSessionStore.js          sessões, conteúdo da sessão aberta e escolhas nos conflitos
+      useSessionStore.js          sessões, conteúdo da sessão aberta, remoção de foto e escolhas nos conflitos
       useSessionStore.test.js
       useSessionStore.resolution.test.js
+      useSessionStore.source.test.js
+      sourceRemoval.js            foto e leituras dela retiradas do conteúdo em memória
+      sourceRemoval.test.js
+      sessionIntegration.test.js  sessões e remoção de foto com o banco real
       resolutionChoices.js        conferência, soma e retirada das escolhas do operador
       resolutionChoices.test.js
       resolutionIntegration.test.js  escolha gravada e relida com o banco real

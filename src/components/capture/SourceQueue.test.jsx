@@ -125,12 +125,38 @@ describe('SourceQueue', () => {
     expect(details.open).toBe(false);
     expect(details.querySelector('summary').textContent).toBe('Medição');
     expect(details.previousElementSibling.getAttribute('aria-label')).toBe('Fotos do lote');
-    expect(view.container.querySelector('ul[aria-label="Fotos do lote"]').textContent).not.toContain(
-      'Tempo:',
-    );
+    expect(
+      view.container.querySelector('ul[aria-label="Fotos do lote"]').textContent,
+    ).not.toContain('Tempo:');
 
     await view.click(buttonNamed('Copiar medição'));
 
     expect(copyText).toHaveBeenCalledTimes(1);
+  });
+
+  it('deixa no lote só as fotos que não estão entre as fotos da sessão aberta', async () => {
+    useCaptureStore.setState({
+      items: [
+        item(1, { status: 'read', sourceId: 'fonte-1' }),
+        item(2, { status: 'failed', sourceId: 'fonte-2' }),
+        item(3, { status: 'duplicate' }),
+        item(4, { status: 'read', sourceId: 'fonte-4', sessionId: 'sessao-2' }),
+        item(5),
+      ],
+    });
+
+    await view.render(<SourceQueue />);
+
+    const rows = [...view.container.querySelectorAll('ul[aria-label="Fotos do lote"] > li')];
+
+    expect(view.container.querySelector('[aria-live="polite"]').textContent).toBe('Foto 5 de 5');
+    expect(rows.map((row) => row.querySelector('p').textContent)).toEqual([
+      'foto-3.jpg',
+      'foto-4.jpg',
+      'foto-5.jpg',
+    ]);
+    expect(view.container.textContent).toContain(
+      'As fotos lidas e as que falharam passam para Fotos da sessão, abaixo.',
+    );
   });
 });

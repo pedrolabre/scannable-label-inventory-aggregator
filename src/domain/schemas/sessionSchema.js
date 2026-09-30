@@ -37,7 +37,12 @@ export const SessionSchema = z
 
 const pad = (value) => String(value).padStart(2, '0');
 
-/** Nome da sessao criada sem nome: `Inventário 24/09/2026`, na data local. */
+/**
+ * Nome da sessao criada sem nome: `Inventário 24/09/2026 14:05`, na data e na
+ * hora locais. A hora separa duas sessoes abertas no mesmo dia.
+ */
 export function defaultSessionName(date) {
-  return `Inventário ${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`;
+  const day = `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`;
+
+  return `Inventário ${day} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }

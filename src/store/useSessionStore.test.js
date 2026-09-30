@@ -98,10 +98,10 @@ describe('hydrate', () => {
     await state().hydrate();
 
     expect(sessionRepository.createSession).toHaveBeenCalledWith(DB, {
-      name: 'Inventário 24/09/2026',
+      name: 'Inventário 24/09/2026 10:00',
     });
     expect(state()).toMatchObject({
-      sessions: [{ id: 's-nova', name: 'Inventário 24/09/2026' }],
+      sessions: [{ id: 's-nova', name: 'Inventário 24/09/2026 10:00' }],
       currentSessionId: 's-nova',
       sources: [],
       readings: [],
@@ -210,7 +210,7 @@ describe('createSession', () => {
     await state().createSession();
 
     expect(sessionRepository.createSession).toHaveBeenLastCalledWith(DB, {
-      name: 'Inventário 24/09/2026',
+      name: 'Inventário 24/09/2026 10:00',
     });
   });
 
@@ -286,7 +286,7 @@ describe('deleteSession', () => {
     await state().deleteSession('s-recente');
 
     expect(state()).toMatchObject({
-      sessions: [{ id: 's-nova', name: 'Inventário 24/09/2026' }],
+      sessions: [{ id: 's-nova', name: 'Inventário 24/09/2026 10:00' }],
       currentSessionId: 's-nova',
       sources: [],
     });
