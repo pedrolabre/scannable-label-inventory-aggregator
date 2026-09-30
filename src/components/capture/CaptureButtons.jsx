@@ -18,9 +18,9 @@ export default function CaptureButtons({ enqueue }) {
 
   return (
     <section aria-labelledby="capture-title" className="space-y-3">
-      <h2 id="capture-title" className="text-rotulo font-semibold text-neutro-tintaMedia">
+      <h3 id="capture-title" className="text-rotulo font-semibold text-neutro-tintaMedia">
         Fotos das etiquetas
-      </h2>
+      </h3>
 
       <div className="grid grid-cols-2 gap-3">
         <label

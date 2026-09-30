@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useCaptureStore } from '../../store/useCaptureStore.js';
 import { useSessionStore } from '../../store/useSessionStore.js';
@@ -8,9 +8,14 @@ import { useReactRoot } from '../../test-fixtures/reactRoot.js';
 
 import CaptureSession from './CaptureSession.jsx';
 
-const view = useReactRoot();
 const initialCapture = useCaptureStore.getState();
 const initialSession = useSessionStore.getState();
+const view = useReactRoot({
+  cleanup: () => {
+    useCaptureStore.setState(initialCapture, true);
+    useSessionStore.setState(initialSession, true);
+  },
+});
 
 const session = { id: 'sessao-1', name: 'Inventário 29/09/2026' };
 
@@ -22,11 +27,6 @@ function newSessionButton() {
 
 beforeEach(() => {
   useSessionStore.setState({ sessions: [session], currentSessionId: session.id });
-});
-
-afterEach(() => {
-  useCaptureStore.setState(initialCapture, true);
-  useSessionStore.setState(initialSession, true);
 });
 
 describe('CaptureSession', () => {

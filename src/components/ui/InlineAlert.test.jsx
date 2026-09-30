@@ -18,4 +18,14 @@ describe('InlineAlert', () => {
     expect(alert.className).toContain('bg-marca-vermelhoTenue');
     expect(alert.className).toContain('text-marca-vermelhoTexto');
   });
+
+  it('mostra o ícone de alerta fora da leitura', async () => {
+    await view.render(<InlineAlert>Falhou.</InlineAlert>);
+
+    const icon = view.container.querySelector('[role="alert"] svg');
+
+    expect(icon).toBeTruthy();
+    expect(icon.getAttribute('aria-hidden')).toBe('true');
+    expect(icon.parentElement.textContent).toBe('Falhou.');
+  });
 });

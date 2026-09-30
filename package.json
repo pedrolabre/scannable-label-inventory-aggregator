@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "dexie": "4.4.6",
+    "lucide-react": "0.469.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "zod": "3.25.76",

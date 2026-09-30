@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { newCaptureItem } from '../../store/captureItem.js';
 import { useCaptureStore } from '../../store/useCaptureStore.js';
@@ -9,9 +9,14 @@ import { useReactRoot } from '../../test-fixtures/reactRoot.js';
 
 import SourceQueue from './SourceQueue.jsx';
 
-const view = useReactRoot();
 const initialCapture = useCaptureStore.getState();
 const initialSession = useSessionStore.getState();
+const view = useReactRoot({
+  cleanup: () => {
+    useCaptureStore.setState(initialCapture, true);
+    useSessionStore.setState(initialSession, true);
+  },
+});
 
 const SESSION = 'sessao-1';
 
@@ -31,11 +36,6 @@ function buttonNamed(name) {
 
 beforeEach(() => {
   useSessionStore.setState({ currentSessionId: SESSION, sources: [], readings: [] });
-});
-
-afterEach(() => {
-  useCaptureStore.setState(initialCapture, true);
-  useSessionStore.setState(initialSession, true);
 });
 
 describe('SourceQueue', () => {
@@ -100,72 +100,37 @@ describe('SourceQueue', () => {
     expect(view.container.querySelector('[role="alert"]')).toBeNull();
   });
 
-  it('copia a medição do lote em colunas e confirma', async () => {
+  it('guarda a medição recolhida no fim da fila depois da primeira foto terminada', async () => {
     const copyText = vi.fn(async () => {});
 
-    useSessionStore.setState({
-      sources: [{ id: 'fonte-1', sessionId: SESSION, width: 100, height: 50 }],
-      readings: [
-        {
-          id: 'l1',
-          sessionId: SESSION,
-          sourceId: 'fonte-1',
-          text: 'LF1|DEMO-005|MAÇÃ FUJI KG|1099|||c1',
-          readAt: '2026-09-29T12:00:00.000Z',
-        },
-      ],
-    });
-    useCaptureStore.setState({
-      items: [
-        item(1, {
-          status: 'read',
-          sourceId: 'fonte-1',
-          summary: { symbolCount: 1, validCount: 1, rejectedCount: 0 },
-          measurement: { durationMs: 42, steps: { load: 10, decode: 25 }, heapBytes: null },
-        }),
-        item(2),
-      ],
-    });
+    useCaptureStore.setState({ items: [item(1, { status: 'processing' })] });
 
     await view.render(<SourceQueue copyText={copyText} />);
+
+    expect(view.container.querySelector('details')).toBeNull();
+
+    await view.update(() =>
+      useCaptureStore.setState({
+        items: [
+          item(1, {
+            status: 'read',
+            measurement: { durationMs: 42, steps: { load: 10, decode: 25 }, heapBytes: null },
+          }),
+        ],
+      }),
+    );
+
+    const details = view.container.querySelector('section > details');
+
+    expect(details.open).toBe(false);
+    expect(details.querySelector('summary').textContent).toBe('Medição');
+    expect(details.previousElementSibling.getAttribute('aria-label')).toBe('Fotos do lote');
+    expect(view.container.querySelector('ul[aria-label="Fotos do lote"]').textContent).not.toContain(
+      'Tempo:',
+    );
+
     await view.click(buttonNamed('Copiar medição'));
 
-    const [text] = copyText.mock.calls[0];
-    const lines = text.split('\n');
-
-    expect(lines[3].startsWith('Ordem\tArquivo\t')).toBe(true);
-    expect(lines[4].split('\t')).toEqual([
-      '1',
-      'foto-1.jpg',
-      'câmera',
-      'lida',
-      '100',
-      '50',
-      '0,0',
-      '1',
-      '1',
-      '0',
-      '0',
-      '10',
-      '25',
-      '42',
-      '',
-      '',
-    ]);
-    expect(lines[5].split('\t').slice(0, 4)).toEqual(['2', 'foto-2.jpg', 'câmera', 'na fila']);
-    expect(view.container.querySelector('[role="status"]').textContent).toBe(
-      'Medição copiada. Cole na planilha.',
-    );
-  });
-
-  it('avisa quando o navegador recusa a cópia', async () => {
-    useCaptureStore.setState({ items: [item(1, { status: 'duplicate', message: 'repetida' })] });
-
-    await view.render(<SourceQueue copyText={vi.fn(async () => Promise.reject(new Error('x')))} />);
-    await view.click(buttonNamed('Copiar medição'));
-
-    expect(view.container.querySelector('[role="alert"]').textContent).toContain(
-      'Não foi possível copiar a medição.',
-    );
+    expect(copyText).toHaveBeenCalledTimes(1);
   });
 });

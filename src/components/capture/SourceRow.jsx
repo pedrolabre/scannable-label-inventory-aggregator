@@ -5,11 +5,15 @@ import { cx } from '../../lib/cx.js';
 import { CAPTURE_ITEM_STATUSES, CAPTURE_ITEM_STATUS_LABELS } from '../../store/captureItem.js';
 import { useSessionStore } from '../../store/useSessionStore.js';
 
-import { countLabel, describeMeasurement, formatMegapixels } from './captureText.js';
+import { countLabel, formatMegapixels } from './captureText.js';
 
 /**
  * Uma foto da fila: a situacao, a frase dela e, depois de lida, os textos de
- * cada simbolo separados em validos e rejeitados com o motivo da recusa.
+ * cada simbolo separados em validos e rejeitados com o motivo da recusa. O
+ * tempo da foto fica na medicao do lote, recolhida ao fim da fila.
+ *
+ * Na coluna estreita a situacao desce para baixo do nome quando os dois nao
+ * cabem lado a lado, em vez de espremer o nome letra por letra.
  *
  * O texto vem de uma etiqueta fotografada e e entrada nao confiavel: aparece
  * sempre como texto, nunca como marcacao.
@@ -114,13 +118,12 @@ export default function SourceRow({ item }) {
   const details = [
     describeSize(source),
     describeCounts(item.summary, texts ? texts.positionCount : null),
-    describeMeasurement(item.measurement),
   ].filter(Boolean);
 
   return (
     <li className="space-y-2 px-4 py-3">
-      <div className="flex items-start justify-between gap-3">
-        <p className="min-w-0 break-all font-semibold text-neutro-tinta">
+      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+        <p className="min-w-24 flex-1 break-all font-semibold text-neutro-tinta">
           {item.fileName || 'foto sem nome'}
         </p>
         <span
