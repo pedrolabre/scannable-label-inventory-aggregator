@@ -76,7 +76,10 @@ export function createSourceWithReadings(db, sessionId, source, readings) {
 
 /**
  * Apaga a fonte com as leituras dela e marca a sessao como alterada, numa
- * transacao so.
+ * transacao so: ou a foto sai inteira, ou nada sai, e nenhuma leitura fica sem
+ * a foto de origem. As resolucoes da sessao continuam gravadas.
+ *
+ * Devolve a sessao como ficou depois da remocao, com o `updatedAt` novo.
  */
 export function deleteSource(db, sessionId, sourceId) {
   return db.transaction('rw', db.sessions, db.sources, db.readings, async () => {
@@ -86,8 +89,11 @@ export function deleteSource(db, sessionId, sourceId) {
       throw createStorageRuleError(STORAGE_RULE_ERRORS.MISSING_SOURCE);
     }
 
-    await touchSession(db, sessionId);
+    const session = await touchSession(db, sessionId);
+
     await db.readings.where('sourceId').equals(sourceId).delete();
     await db.sources.delete(sourceId);
+
+    return { session };
   });
 }

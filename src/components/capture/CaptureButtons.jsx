@@ -5,7 +5,8 @@ import { INNER_FOCUS_OUTLINE, INNER_FOCUS_OUTLINE_COLORS } from '../ui/focusClas
 import useImageIntake from './useImageIntake.js';
 
 /**
- * Os dois caminhos de entrada de foto. Cada seletor mora dentro de um rotulo
+ * Os dois caminhos de entrada de foto, com a orientacao de enquadramento logo
+ * abaixo, na hora em que ela serve. Cada seletor mora dentro de um rotulo
  * com a forma de botao e fica escondido so visualmente: continua alcancavel
  * pelo teclado, com uma parada de tabulacao so, e o nome dele e o texto do
  * rotulo. O realce de foco aparece no rotulo.
@@ -59,6 +60,10 @@ export default function CaptureButtons({ enqueue }) {
           />
         </label>
       </div>
+
+      <p data-orientacao="" className="text-rotulo font-semibold text-neutro-tintaMedia">
+        Enquadre a folha de frente, inteira e nítida.
+      </p>
 
       <p className="text-rotulo text-neutro-tintaFraca">
         Fotografar abre a câmera para uma foto. Enviar fotos escolhe várias imagens de uma vez.

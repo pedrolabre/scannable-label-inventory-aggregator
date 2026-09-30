@@ -243,12 +243,26 @@ describe('deleteSource', () => {
     await createReadings(db, session.id, mantida.id, [{ text: 'LF1|A|B|1|||c2' }]);
 
     vi.setSystemTime(new Date('2026-09-24T12:10:00.000Z'));
-    await deleteSource(db, session.id, apagada.id);
+    const result = await deleteSource(db, session.id, apagada.id);
 
     expect(await db.sources.get(apagada.id)).toBeUndefined();
     expect(await db.readings.where('sourceId').equals(apagada.id).count()).toBe(0);
     expect(await db.readings.where('sourceId').equals(mantida.id).count()).toBe(1);
     expect((await db.sessions.get(session.id)).updatedAt).toBe('2026-09-24T12:10:00.000Z');
+    expect(result).toEqual({ session: await db.sessions.get(session.id) });
+  });
+
+  it('mantém as resoluções da sessão', async () => {
+    const stored = await createSource(db, session.id, READ_SOURCE);
+
+    await db.resolutions.put({
+      sessionId: session.id,
+      systemCode: 'A',
+      choices: { displayName: 'B' },
+    });
+    await deleteSource(db, session.id, stored.id);
+
+    expect(await db.resolutions.where('sessionId').equals(session.id).count()).toBe(1);
   });
 
   it('libera a foto para ser enviada de novo na sessão', async () => {

@@ -1,5 +1,6 @@
 import { CAPTURE_ITEM_STATUSES, formatProgress, selectProgress } from '../../store/captureItem.js';
 import { useCaptureStore } from '../../store/useCaptureStore.js';
+import { useSessionStore } from '../../store/useSessionStore.js';
 import Button from '../ui/Button.jsx';
 import InlineAlert from '../ui/InlineAlert.jsx';
 
@@ -7,9 +8,14 @@ import MeasurementDetails from './MeasurementDetails.jsx';
 import SourceRow from './SourceRow.jsx';
 
 /**
- * Fotos do lote atual: andamento, erro atual, a nova tentativa das fotos com
- * erro, uma linha por foto e, ao fim, a medicao recolhida. O lote vive so na
- * memoria da pagina; o que fica gravado sao as fontes e as leituras da sessao.
+ * Lote atual: andamento, erro atual, a nova tentativa das fotos com erro, uma
+ * linha por foto que ainda nao esta entre as fotos da sessao aberta e, ao fim,
+ * a medicao recolhida do lote inteiro.
+ *
+ * O lote vive so na memoria da pagina. A foto gravada na sessao aberta, lida ou
+ * com falha, sai daqui e aparece em Fotos da sessao, lida do banco; aqui ficam a
+ * que espera, a que esta sendo lida, a repetida, a que deu erro e a que foi
+ * gravada em outra sessao.
  */
 
 const DONE_STATUSES = new Set([
@@ -21,14 +27,20 @@ const DONE_STATUSES = new Set([
 
 const selectProgressText = (state) => formatProgress(selectProgress(state));
 
+const STORED_NOTE = 'As fotos lidas e as que falharam passam para Fotos da sessão, abaixo.';
+
 export default function SourceQueue({ copyText }) {
   const items = useCaptureStore((state) => state.items);
   const currentError = useCaptureStore((state) => state.currentError);
   const retry = useCaptureStore((state) => state.retry);
   const progress = useCaptureStore(selectProgressText);
+  const currentSessionId = useSessionStore((state) => state.currentSessionId);
 
   const hasError = items.some((item) => item.status === CAPTURE_ITEM_STATUSES.ERROR);
   const hasDone = items.some((item) => DONE_STATUSES.has(item.status));
+  const isStoredHere = (item) => Boolean(item.sourceId) && item.sessionId === currentSessionId;
+  const visible = items.filter((item) => !isStoredHere(item));
+  const hasStored = visible.length < items.length;
 
   return (
     <section aria-labelledby="queue-title" className="space-y-3">
@@ -47,12 +59,14 @@ export default function SourceQueue({ copyText }) {
 
       {currentError ? <InlineAlert>{currentError}</InlineAlert> : null}
 
-      {items.length > 0 ? (
+      {hasStored ? <p className="text-rotulo text-neutro-tintaFraca">{STORED_NOTE}</p> : null}
+
+      {visible.length > 0 ? (
         <ul
           aria-label="Fotos do lote"
           className="divide-y divide-neutro-divisor rounded border border-neutro-divisor bg-neutro-branco"
         >
-          {items.map((item) => (
+          {visible.map((item) => (
             <SourceRow key={item.id} item={item} />
           ))}
         </ul>

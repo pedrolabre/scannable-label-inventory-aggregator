@@ -74,9 +74,10 @@ describe('SessionSchema', () => {
 });
 
 describe('defaultSessionName', () => {
-  it('usa a data local com dia e mês de dois dígitos', () => {
-    expect(defaultSessionName(new Date(2026, 8, 24, 23, 59))).toBe('Inventário 24/09/2026');
-    expect(defaultSessionName(new Date(2027, 0, 5, 0, 0))).toBe('Inventário 05/01/2027');
+  it('usa a data e a hora locais, com dia, mês, hora e minuto de dois dígitos', () => {
+    expect(defaultSessionName(new Date(2026, 8, 24, 23, 59))).toBe('Inventário 24/09/2026 23:59');
+    expect(defaultSessionName(new Date(2027, 0, 5, 0, 0))).toBe('Inventário 05/01/2027 00:00');
+    expect(defaultSessionName(new Date(2027, 0, 5, 7, 3))).toBe('Inventário 05/01/2027 07:03');
   });
 
   it('produz um nome que passa no schema', () => {
