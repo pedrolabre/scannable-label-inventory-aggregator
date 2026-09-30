@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { newCaptureItem } from '../../store/captureItem.js';
 import { useSessionStore } from '../../store/useSessionStore.js';
@@ -8,8 +8,10 @@ import { useReactRoot } from '../../test-fixtures/reactRoot.js';
 
 import SourceRow from './SourceRow.jsx';
 
-const view = useReactRoot();
 const initialSession = useSessionStore.getState();
+const view = useReactRoot({
+  cleanup: () => useSessionStore.setState(initialSession, true),
+});
 
 const SESSION = 'sessao-1';
 const CORNERS = {
@@ -48,17 +50,13 @@ beforeEach(() => {
   useSessionStore.setState({ currentSessionId: SESSION, sources: [], readings: [] });
 });
 
-afterEach(() => {
-  useSessionStore.setState(initialSession, true);
-});
-
 describe('SourceRow', () => {
   it('mostra a situação da foto que espera e da que está sendo lida', async () => {
     expect((await renderRow(item({ status: 'pending' }))).textContent).toContain('na fila');
     expect((await renderRow(item({ status: 'processing' }))).textContent).toContain('processando');
   });
 
-  it('lista os textos válidos e os rejeitados com o motivo, com tamanho, contagem e tempo', async () => {
+  it('lista os textos válidos e os rejeitados com o motivo, com tamanho e contagem, sem o tempo', async () => {
     useSessionStore.setState({
       sources: [{ id: 'fonte-1', sessionId: SESSION, width: 4032, height: 3024 }],
       readings: [
@@ -82,7 +80,7 @@ describe('SourceRow', () => {
     expect(row.textContent).toContain('lida');
     expect(row.textContent).toContain('4032 × 3024 px (12,2 MP)');
     expect(row.textContent).toContain('3 símbolos: 1 válido, 2 rejeitados; 3 com posição');
-    expect(row.textContent).toContain('Tempo: 1.840 ms (abrir 310 ms, ler 1.490 ms)');
+    expect(row.textContent).not.toContain('Tempo:');
     expect(lists).toHaveLength(2);
     expect([...lists[0].children].map((li) => li.textContent)).toEqual([
       'LF1|DEMO-005|MAÇÃ FUJI KG|1099|||c1',

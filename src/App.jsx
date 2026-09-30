@@ -1,31 +1,59 @@
-import CaptureButtons from './components/capture/CaptureButtons.jsx';
-import CaptureSession from './components/capture/CaptureSession.jsx';
-import SourceQueue from './components/capture/SourceQueue.jsx';
-import { APP_NAME } from './lib/app-meta.js';
+import { useState } from 'react';
+
+import AppHeader from './components/AppHeader.jsx';
+import AppShell, { SHELL_VIEWS } from './components/AppShell.jsx';
+import CaptureColumn from './components/capture/CaptureColumn.jsx';
+import ShellColumn from './components/layout/ShellColumn.jsx';
+import StatusBar from './components/layout/StatusBar.jsx';
+import useInventoryReport from './components/useInventoryReport.js';
 
 /**
- * Tela de leitura das fotos: sessao aberta, entrada de fotos e a fila com o
- * resultado de cada uma. A pagina nao rola (`global.css`); quem rola e o
- * corpo da tela.
+ * Montagem da tela e o pouco de estado que nao pertence a nenhuma coluna.
+ *
+ * A vista ativa da tela estreita mora aqui e morre no recarregamento: ela so
+ * decide qual coluna aparece abaixo do ponto de corte, e na tela larga as tres
+ * estao sempre a vista. A tela abre na Entrada, porque o primeiro gesto de uma
+ * contagem e fotografar.
+ *
+ * O instante do relatorio e fixado uma vez, na montagem: a tela nao o mostra, e
+ * assim so o conteudo da sessao refaz a conta.
  */
-export default function App() {
-  return (
-    <main className="h-full overflow-y-auto bg-neutro-papel font-sans text-sm text-neutro-tinta">
-      <div className="mx-auto flex max-w-2xl flex-col gap-6 px-recuo py-6">
-        <header className="space-y-2">
-          <h1 className="font-display text-4xl font-bold tracking-tight text-marca-vermelho">
-            {APP_NAME}
-          </h1>
-          <p className="text-neutro-tintaMedia">
-            Tudo roda neste aparelho: as fotos e as leituras ficam aqui, sem enviar nada pela
-            internet.
-          </p>
-        </header>
 
-        <CaptureSession />
-        <CaptureButtons />
-        <SourceQueue />
-      </div>
-    </main>
+function productsMessage(report) {
+  const count = report?.totals.productCount ?? 0;
+
+  if (count === 0) {
+    return 'Nenhum produto lido nesta sessão. Envie fotos das etiquetas em Entrada.';
+  }
+
+  return count === 1 ? '1 produto lido nesta sessão.' : `${count} produtos lidos nesta sessão.`;
+}
+
+export default function App() {
+  const [activeView, setActiveView] = useState(SHELL_VIEWS.INTAKE);
+  const [generatedAt] = useState(() => new Date().toISOString());
+  const report = useInventoryReport(generatedAt);
+
+  return (
+    <AppShell
+      activeView={activeView}
+      header={<AppHeader activeView={activeView} onViewChange={setActiveView} />}
+      left={<CaptureColumn />}
+      center={
+        <ShellColumn title="Produtos">
+          <p data-estado-produtos="" className="text-neutro-tintaFraca">
+            {productsMessage(report)}
+          </p>
+        </ShellColumn>
+      }
+      right={
+        <ShellColumn title="Detalhe">
+          <p data-estado-detalhe="" className="text-neutro-tintaFraca">
+            Nenhum produto selecionado.
+          </p>
+        </ShellColumn>
+      }
+      status={<StatusBar sourceCount={report?.header.sourceCount ?? 0} totals={report?.totals} />}
+    />
   );
 }

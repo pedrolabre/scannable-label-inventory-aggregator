@@ -50,6 +50,7 @@ LF1|118789|CANTINHO CAFE RUBI|85990|||c1
 - Zod 3 na validação dos campos lidos de cada etiqueta e de todo registro gravado no banco local.
 - Dexie 4 sobre o IndexedDB, com as sessões, as fotos processadas, as leituras e as resoluções de conflito.
 - Zustand 5 no estado das sessões.
+- lucide-react nos ícones da interface, importados um a um.
 - zxing-wasm 3 na leitura dos QR Codes, carregado só na primeira foto, com o binário `zxing_reader.wasm` servido pela própria aplicação, em `public/zxing/`.
 - bwip-js nas imagens de teste com QR Codes `LF1`, geradas por `npm run fixtures:qr`.
 - Vitest com jsdom, e fake-indexeddb nos testes do banco local.
@@ -87,7 +88,20 @@ scannable-label-inventory-aggregator/
     App.jsx
     App.test.jsx
     components/
+      AppShell.jsx                contorno de janela única: três colunas na tela larga, uma por vez na estreita
+      AppShell.test.jsx
+      AppHeader.jsx               nome do produto e barra de vistas da tela estreita
+      AppHeader.test.jsx
+      useInventoryReport.js       relatório da sessão aberta, derivado do store
+      useInventoryReport.test.jsx
+      layout/
+        ShellColumn.jsx           coluna com título e corpo que rola
+        ShellColumn.test.jsx
+        StatusBar.jsx             fotos, exemplares, produtos, valor total e conflitos abertos
+        StatusBar.test.jsx
       capture/
+        CaptureColumn.jsx         coluna Entrada: sessão, fotos e fila
+        CaptureColumn.test.jsx
         CaptureButtons.jsx        Fotografar e Enviar fotos
         CaptureButtons.test.jsx
         CaptureSession.jsx        sessão aberta e abertura de sessão nova
@@ -96,6 +110,8 @@ scannable-label-inventory-aggregator/
         SourceQueue.test.jsx
         SourceRow.jsx             situação e textos lidos de cada foto
         SourceRow.test.jsx
+        MeasurementDetails.jsx    tempo de cada foto e cópia da medição, recolhidos
+        MeasurementDetails.test.jsx
         useImageIntake.js         entrega das fotos escolhidas à fila
         useImageIntake.test.jsx
         captureText.js            contagens, tempos e medição em colunas
@@ -105,6 +121,8 @@ scannable-label-inventory-aggregator/
         Button.test.jsx
         InlineAlert.jsx           aviso de erro junto da ação
         InlineAlert.test.jsx
+        SegmentedControl.jsx      escolha única entre poucas opções, com as setas
+        SegmentedControl.test.jsx
         focusClasses.js           realce de foco compartilhado
     domain/
       schemas/

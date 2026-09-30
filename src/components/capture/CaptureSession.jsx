@@ -41,17 +41,21 @@ export default function CaptureSession() {
 
   return (
     <section aria-labelledby="session-title" className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h2 id="session-title" className="text-rotulo font-semibold text-neutro-tintaMedia">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <div className="min-w-0 flex-1 basis-32">
+          <h3 id="session-title" className="text-rotulo font-semibold text-neutro-tintaMedia">
             Sessão aberta
-          </h2>
+          </h3>
           <p className="truncate text-neutro-tinta">
             {sessionName ?? (isLoading ? 'Abrindo a sessão salva neste aparelho…' : 'Nenhuma')}
           </p>
         </div>
 
-        <Button onClick={handleCreate} disabled={isRunning || isLoading || isCreating}>
+        <Button
+          onClick={handleCreate}
+          disabled={isRunning || isLoading || isCreating}
+          className="whitespace-nowrap"
+        >
           Nova sessão
         </Button>
       </div>

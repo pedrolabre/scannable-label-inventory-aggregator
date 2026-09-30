@@ -34,3 +34,18 @@ export const INNER_FOCUS_OUTLINE_COLORS = Object.freeze({
   brand: 'has-[:focus-visible]:outline-marca-vermelho',
   neutral: 'has-[:focus-visible]:outline-neutro-tintaFraca',
 });
+
+/**
+ * Mesma regra para o controle escondido so visualmente cujo realce aparece no
+ * elemento vizinho, e nao num rotulo que o envolve. E o caso da escolha unica:
+ * o radio fica fora da vista, e quem se pinta e a opcao desenhada ao lado dele.
+ */
+export const PEER_FOCUS_OUTLINE = cx(
+  'peer-focus-visible:outline peer-focus-visible:outline-2',
+  'peer-focus-visible:outline-offset-2',
+);
+
+export const PEER_FOCUS_OUTLINE_COLORS = Object.freeze({
+  brand: 'peer-focus-visible:outline-marca-vermelho',
+  neutral: 'peer-focus-visible:outline-neutro-tintaFraca',
+});
