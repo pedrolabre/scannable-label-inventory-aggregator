@@ -13,9 +13,11 @@ Em desenvolvimento inicial.
 - Cada exemplar é identificado pelo texto inteiro do símbolo: o mesmo texto lido em mais de uma foto conta uma vez.
 - Resumo por produto com código, nome, preço, quantidade e total, com a marca de conflito aberto, de conflito resolvido e de aviso de reimpressão, e lista de exemplares com as fotos de origem.
 - Busca no resumo por código, nome ou código de barras, sem diferença de maiúsculas e acentos (`CAFE` encontra `Café`), com a contagem do resultado.
-- Produto escolhido na tabela aparece na coluna Detalhe; no celular, a escolha abre a vista Detalhe.
-- Divergência de nome, preço, EAN ou NCM no mesmo código é resolvida na tela antes da exportação.
-- Símbolos fora do formato ficam numa lista de rejeitados, com o motivo.
+- Produto escolhido na tabela aparece na coluna Detalhe, com quantidade, preço, total, EAN e NCM; no celular, a escolha abre a vista Detalhe.
+- Exemplares do produto no Detalhe com o número de leituras, as fotos de origem, o aviso de reimpressão e o texto lido.
+- Divergência de nome, preço, EAN ou NCM no mesmo código é resolvida no Detalhe, campo a campo, antes da exportação: cada variante mostra quantos exemplares a carregam e quais, a escolha fica gravada na sessão e pode ser desfeita, e a quantidade não muda.
+- Escolha gravada que deixou de valer aparece no Detalhe com o motivo; a do campo que deixou de divergir pode ser descartada.
+- Textos fora do formato e fotos que não abrem ficam num diálogo aberto pela coluna Entrada, com a foto e o motivo; o texto rejeitado aparece cortado em 120 caracteres.
 - Exportação em CSV, XML e PDF.
 - Sessões de inventário guardadas no IndexedDB, abertas, criadas, renomeadas e apagadas num diálogo, com o nome padrão de data e hora. Ao recarregar, volta a última sessão aberta no aparelho. As fotos não são guardadas.
 - Fotos da sessão listadas com os textos lidos; remover uma foto tira também os textos dela, e os totais se refazem na hora.
@@ -90,6 +92,8 @@ scannable-label-inventory-aggregator/
     main.jsx
     App.jsx
     App.test.jsx
+    AppProducts.test.jsx          coluna Produtos dentro da tela inteira
+    AppDetail.test.jsx            coluna Detalhe e diálogo de rejeitados dentro da tela inteira, com o banco real
     components/
       AppShell.jsx                contorno de janela única: três colunas na tela larga, uma por vez na estreita
       AppShell.test.jsx
@@ -103,7 +107,7 @@ scannable-label-inventory-aggregator/
         StatusBar.jsx             fotos, exemplares, produtos, valor total e conflitos abertos
         StatusBar.test.jsx
       capture/
-        CaptureColumn.jsx         coluna Entrada: sessão, fotos, lote e fotos da sessão
+        CaptureColumn.jsx         coluna Entrada: sessão, fotos, lote, rejeitados e falhas e fotos da sessão
         CaptureColumn.test.jsx
         CaptureButtons.jsx        Fotografar, Enviar fotos e orientação de enquadramento
         CaptureButtons.test.jsx
@@ -115,7 +119,7 @@ scannable-label-inventory-aggregator/
         SessionSources.test.jsx
         SessionSourceRow.jsx      situação, tamanho e textos lidos de cada foto gravada
         SessionSourceRow.test.jsx
-        sourceDisplay.jsx         etiqueta de situação, contagens e lista de textos das fotos
+        sourceDisplay.jsx         etiqueta de situação, contagens e lista de textos das fotos, com o rejeitado cortado
         MeasurementDetails.jsx    tempo de cada foto e cópia da medição, recolhidos
         MeasurementDetails.test.jsx
         useImageIntake.js         entrega das fotos escolhidas à fila
@@ -135,8 +139,28 @@ scannable-label-inventory-aggregator/
         productDisplay.jsx        nome, valores em R$, valor ausente com o motivo e etiquetas
         productDisplay.test.jsx
       detail/
-        DetailColumn.jsx          coluna Detalhe: nome e código do produto escolhido
+        DetailColumn.jsx          coluna Detalhe: dados, conflitos e exemplares do produto escolhido
         DetailColumn.test.jsx
+        ProductFacts.jsx          quantidade, preço, total, EAN e NCM do produto
+        ProductFacts.test.jsx
+        ConflictResolver.jsx      conflitos do produto, escolha, desfazer e descarte, uma gravação por vez
+        ConflictResolver.test.jsx
+        ConflictField.jsx         variantes de um campo com os exemplares de cada uma
+        ConflictField.test.jsx
+        IgnoredChoiceNote.jsx     escolha gravada que deixou de valer, com o motivo
+        IgnoredChoiceNote.test.jsx
+        CopyList.jsx              exemplares com leituras, fotos, aviso e texto lido
+        CopyList.test.jsx
+        SourceRefs.jsx            fotos de origem de um exemplar
+        SourceRefs.test.jsx
+        WarningList.jsx           avisos de reimpressão de um exemplar
+        WarningList.test.jsx
+        RejectedDialog.jsx        textos rejeitados e fotos com falha, com o motivo
+        RejectedDialog.test.jsx
+        productDetail.js          recorte do relatório para o produto escolhido
+        productDetail.test.js
+        detailText.js             textos da coluna e do diálogo
+        detailText.test.js
       sessions/
         SessionPicker.jsx         sessão aberta e botão Sessões no topo da Entrada
         SessionPicker.test.jsx

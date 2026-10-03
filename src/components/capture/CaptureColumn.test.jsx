@@ -45,4 +45,35 @@ describe('CaptureColumn', () => {
 
     expect(onOpenSessions).toHaveBeenCalledTimes(1);
   });
+
+  it('mostra o gatilho de rejeitados e falhas só com o que mostrar, acima das fotos da sessão', async () => {
+    const onOpenIssues = vi.fn();
+
+    await view.render(<CaptureColumn onOpenSessions={vi.fn()} onOpenIssues={onOpenIssues} />);
+
+    expect(view.container.querySelector('[data-gatilho-rejeitados]')).toBeNull();
+
+    await view.render(
+      <CaptureColumn
+        onOpenSessions={vi.fn()}
+        onOpenIssues={onOpenIssues}
+        rejectedCount={2}
+        failedCount={1}
+      />,
+    );
+
+    const trigger = view.container.querySelector('[data-gatilho-rejeitados]');
+    const sessionTitle = [...view.container.querySelectorAll('h3')].find(
+      (title) => title.textContent === 'Fotos da sessão',
+    );
+
+    expect(trigger.textContent).toBe('Rejeitados (2) e falhas (1)');
+    expect(
+      trigger.compareDocumentPosition(sessionTitle) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    await view.click(trigger);
+
+    expect(onOpenIssues).toHaveBeenCalledTimes(1);
+  });
 });

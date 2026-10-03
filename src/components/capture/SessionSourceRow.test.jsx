@@ -74,6 +74,18 @@ describe('SessionSourceRow', () => {
     ]);
   });
 
+  it('corta o texto rejeitado em 120 grafemas e mostra o válido inteiro', async () => {
+    const long = `LF9|${'X'.repeat(300)}`;
+    const row = await renderRow(READ_SOURCE, [
+      reading('l1', 'LF1|DEMO-005|MAÇÃ FUJI KG|1099|||c1'),
+      reading('l2', long),
+    ]);
+    const rejected = row.querySelectorAll('ul')[1].querySelector('li');
+
+    expect(rejected.textContent).toBe(`${long.slice(0, 120)}… — versão não suportada`);
+    expect(row.querySelectorAll('ul')[0].textContent).toBe('LF1|DEMO-005|MAÇÃ FUJI KG|1099|||c1');
+  });
+
   it('avisa a foto gravada sem nenhum símbolo', async () => {
     const row = await renderRow(READ_SOURCE, []);
 

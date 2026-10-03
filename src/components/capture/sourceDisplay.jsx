@@ -1,3 +1,4 @@
+import { truncateText } from '../../domain/services/reportSections.js';
 import { cx } from '../../lib/cx.js';
 
 import { countLabel, formatMegapixels } from './captureText.js';
@@ -65,7 +66,12 @@ export function describeCounts(summary, positionCount) {
   return `${countLabel(summary.symbolCount, 'símbolo', 'símbolos')}: ${counts}${positions}`;
 }
 
-/** Textos lidos de uma foto, um por linha, com o motivo da recusa quando ha. */
+/**
+ * Textos lidos de uma foto, um por linha, com o motivo da recusa quando ha. O
+ * texto recusado sai cortado em 120 grafemas, como no relatorio: um QR Code
+ * fora do contrato pode trazer milhares de caracteres. O valido cabe no limite
+ * do simbolo e aparece inteiro.
+ */
 export function TextList({ title, entries, withReason = false }) {
   if (entries.length === 0) {
     return null;
@@ -77,7 +83,11 @@ export function TextList({ title, entries, withReason = false }) {
       <ul className="space-y-1">
         {entries.map((entry) => (
           <li key={entry.id} className="break-all text-neutro-tinta">
-            {entry.text === '' ? EMPTY_TEXT : entry.text}
+            {entry.text === ''
+              ? EMPTY_TEXT
+              : withReason
+                ? truncateText(entry.text).displayText
+                : entry.text}
             {withReason ? (
               <span className="break-normal text-marca-vermelhoTexto"> — {entry.message}</span>
             ) : null}

@@ -4,6 +4,7 @@ import AppHeader from './components/AppHeader.jsx';
 import AppShell, { SHELL_VIEWS, isWideScreen } from './components/AppShell.jsx';
 import CaptureColumn from './components/capture/CaptureColumn.jsx';
 import DetailColumn from './components/detail/DetailColumn.jsx';
+import RejectedDialog from './components/detail/RejectedDialog.jsx';
 import StatusBar from './components/layout/StatusBar.jsx';
 import ProductsColumn from './components/products/ProductsColumn.jsx';
 import SessionDialog from './components/sessions/SessionDialog.jsx';
@@ -22,7 +23,9 @@ import useInventoryReport from './components/useInventoryReport.js';
  *
  * Um dialogo por vez, e por isso `openModal` guarda um identificador e nao uma
  * pilha: dois dialogos abertos dariam duas ordens de foco e dois `Esc`. Ele
- * tambem morre no recarregamento.
+ * tambem morre no recarregamento. Sao dois: sessoes, aberto pelo topo da
+ * Entrada, e rejeitados e fotos com falha, aberto pelo gatilho acima das fotos
+ * da sessao, que so aparece quando ha o que mostrar.
  *
  * O produto selecionado e estado de tela como os outros: o codigo do sistema
  * e a sessao em que foi escolhido. A selecao se desfaz quando o produto sai do
@@ -31,7 +34,7 @@ import useInventoryReport from './components/useInventoryReport.js';
  * Detalhe, que na tela estreita e a unica a mostra.
  */
 
-const MODALS = Object.freeze({ SESSIONS: 'sessoes' });
+const MODALS = Object.freeze({ SESSIONS: 'sessoes', ISSUES: 'rejeitados' });
 
 const NO_SESSION = 'sem-sessao';
 
@@ -73,7 +76,14 @@ export default function App() {
       <AppShell
         activeView={activeView}
         header={<AppHeader activeView={activeView} onViewChange={setActiveView} />}
-        left={<CaptureColumn onOpenSessions={() => setOpenModal(MODALS.SESSIONS)} />}
+        left={
+          <CaptureColumn
+            onOpenSessions={() => setOpenModal(MODALS.SESSIONS)}
+            onOpenIssues={() => setOpenModal(MODALS.ISSUES)}
+            rejectedCount={report?.totals.rejectedCount ?? 0}
+            failedCount={report?.header.failedSourceCount ?? 0}
+          />
+        }
         center={
           <ProductsColumn
             key={sessionId ?? NO_SESSION}
@@ -83,11 +93,20 @@ export default function App() {
             onSelect={selectProduct}
           />
         }
-        right={<DetailColumn product={selectedProduct} focusRequest={detailFocusRequest} />}
+        right={
+          <DetailColumn
+            report={report}
+            product={selectedProduct}
+            focusRequest={detailFocusRequest}
+          />
+        }
         status={<StatusBar sourceCount={report?.header.sourceCount ?? 0} totals={report?.totals} />}
       />
 
       {openModal === MODALS.SESSIONS ? <SessionDialog onClose={closeModal} /> : null}
+      {openModal === MODALS.ISSUES && report ? (
+        <RejectedDialog rejected={report.rejected} sources={report.sources} onClose={closeModal} />
+      ) : null}
     </>
   );
 }
