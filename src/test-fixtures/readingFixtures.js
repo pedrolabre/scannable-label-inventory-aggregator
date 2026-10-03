@@ -1,7 +1,7 @@
 /**
- * Leituras e fontes sinteticas para os testes do dominio. Os textos, codigos,
- * precos e nomes de arquivo sao inventados, e cada registro tem so os campos do
- * registro gravado.
+ * Leituras e fontes sinteticas para os testes do dominio, e linhas do resumo
+ * por produto para os testes da tela. Os textos, codigos, precos e nomes de
+ * arquivo sao inventados, e cada registro tem so os campos do registro gravado.
  */
 
 import { QR_FIXTURES } from './qrFixtures.js';
@@ -78,4 +78,31 @@ export function qrFixtureReadings(file, sourceId) {
 
     return readingOf(`${sourceId}-${index + 1}`, sourceId, text, position);
   });
+}
+
+/**
+ * Uma linha do resumo por produto como o relatorio a entrega, para os testes
+ * da tela. Sem troca, e um produto sem conflito e sem aviso; o total segue a
+ * quantidade e o preco recebidos.
+ */
+export function summaryProductOf(systemCode, overrides = {}) {
+  const quantity = overrides.quantity ?? 1;
+  const priceInCentavos =
+    overrides.priceInCentavos === undefined ? 1000 : overrides.priceInCentavos;
+
+  return {
+    systemCode,
+    displayName: `PRODUTO ${systemCode}`,
+    priceInCentavos,
+    ean: null,
+    ncm: null,
+    quantity,
+    totalInCentavos: priceInCentavos === null ? null : quantity * priceInCentavos,
+    totalOutOfRange: false,
+    conflictingFields: [],
+    resolvedFields: [],
+    openConflictFields: [],
+    warningCount: 0,
+    ...overrides,
+  };
 }

@@ -11,11 +11,13 @@ Em desenvolvimento inicial.
 - Entrada por foto da câmera ou por envio de várias imagens de uma vez.
 - Vários QR Codes decodificados por foto, no próprio aparelho.
 - Cada exemplar é identificado pelo texto inteiro do símbolo: o mesmo texto lido em mais de uma foto conta uma vez.
-- Resumo por produto com quantidade e total, e lista de exemplares com as fotos de origem.
+- Resumo por produto com código, nome, preço, quantidade e total, com a marca de conflito aberto, de conflito resolvido e de aviso de reimpressão, e lista de exemplares com as fotos de origem.
+- Busca no resumo por código, nome ou código de barras, sem diferença de maiúsculas e acentos (`CAFE` encontra `Café`), com a contagem do resultado.
+- Produto escolhido na tabela aparece na coluna Detalhe; no celular, a escolha abre a vista Detalhe.
 - Divergência de nome, preço, EAN ou NCM no mesmo código é resolvida na tela antes da exportação.
 - Símbolos fora do formato ficam numa lista de rejeitados, com o motivo.
 - Exportação em CSV, XML e PDF.
-- Sessões de inventário guardadas no IndexedDB, abertas, criadas, renomeadas e apagadas num diálogo, com o nome padrão de data e hora. As fotos não são guardadas.
+- Sessões de inventário guardadas no IndexedDB, abertas, criadas, renomeadas e apagadas num diálogo, com o nome padrão de data e hora. Ao recarregar, volta a última sessão aberta no aparelho. As fotos não são guardadas.
 - Fotos da sessão listadas com os textos lidos; remover uma foto tira também os textos dela, e os totais se refazem na hora.
 - PWA instalável e utilizável offline.
 
@@ -96,7 +98,7 @@ scannable-label-inventory-aggregator/
       useInventoryReport.js       relatório da sessão aberta, derivado do store
       useInventoryReport.test.jsx
       layout/
-        ShellColumn.jsx           coluna com título e corpo que rola
+        ShellColumn.jsx           coluna com título ou faixa própria e corpo que rola
         ShellColumn.test.jsx
         StatusBar.jsx             fotos, exemplares, produtos, valor total e conflitos abertos
         StatusBar.test.jsx
@@ -120,6 +122,21 @@ scannable-label-inventory-aggregator/
         useImageIntake.test.jsx
         captureText.js            contagens, tempos e medição em colunas
         captureText.test.js
+      products/
+        ProductsColumn.jsx        coluna Produtos: busca, contagem e resumo por produto
+        ProductsColumn.test.jsx
+        ProductSearchField.jsx    campo de busca com a contagem e o limpar
+        ProductSearchField.test.jsx
+        ProductSummaryTable.jsx   tabela do resumo por produto, a partir de 640 px
+        ProductSummaryTable.test.jsx
+        ProductRow.jsx            linha do produto, com o nome que seleciona
+        ProductCards.jsx          cartões do resumo por produto, abaixo de 640 px
+        ProductCards.test.jsx
+        productDisplay.jsx        nome, valores em R$, valor ausente com o motivo e etiquetas
+        productDisplay.test.jsx
+      detail/
+        DetailColumn.jsx          coluna Detalhe: nome e código do produto escolhido
+        DetailColumn.test.jsx
       sessions/
         SessionPicker.jsx         sessão aberta e botão Sessões no topo da Entrada
         SessionPicker.test.jsx
@@ -180,6 +197,8 @@ scannable-label-inventory-aggregator/
         inventoryReport.cases.test.js
         reportSections.js         linhas das seções do relatório e corte do texto rejeitado
         reportSections.test.js
+        productSearch.js          busca no resumo sem diferença de maiúsculas e acentos
+        productSearch.test.js
     storage/
       indexed-db.js               banco StockVisionDB, tabelas e índices
       indexed-db.test.js
@@ -191,6 +210,8 @@ scannable-label-inventory-aggregator/
       readingRepository.test.js
       resolutionRepository.js     resoluções de conflito por produto
       resolutionRepository.test.js
+      lastSessionStorage.js       última sessão aberta no aparelho, no localStorage
+      lastSessionStorage.test.js
       storageError.js             mensagens das falhas do armazenamento
       storageError.test.js
     store/
@@ -231,7 +252,7 @@ scannable-label-inventory-aggregator/
       qrFixtures.js               textos das imagens de teste
       readPngFixture.js           leitura dos PNGs de teste na suíte
       reactRoot.js                montagem dos componentes na suíte
-      readingFixtures.js          leituras e fontes sintéticas para os testes do domínio
+      readingFixtures.js          leituras, fontes e linhas de produto sintéticas para os testes
       qr-1.png, qr-4.png, qr-8.png
     styles/
       global.css      faces de fonte e variáveis de densidade

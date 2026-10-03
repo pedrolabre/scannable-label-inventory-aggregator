@@ -55,8 +55,21 @@ async function storePhoto(page, file, sha) {
   return outcome.source;
 }
 
+/** `localStorage` em memoria, que sobrevive ao recarregamento simulado. */
+function stubLocalStorage() {
+  const values = new Map();
+
+  vi.stubGlobal('localStorage', {
+    getItem: (key) => (values.has(key) ? values.get(key) : null),
+    setItem: (key, value) => values.set(key, String(value)),
+  });
+
+  return values;
+}
+
 afterEach(async () => {
   vi.useRealTimers();
+  vi.unstubAllGlobals();
 
   for (const db of opened.splice(0).reverse()) {
     await db.delete();
@@ -99,6 +112,51 @@ describe('sessões com o banco real', () => {
       sources: [{ fileName: 'qr-1.png' }],
     });
     expect(reloaded.store.getState().readings).toHaveLength(1);
+  });
+
+  it('reabre depois de recarregar a última sessão aberta, mesmo sem alteração nela', async () => {
+    stubLocalStorage();
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 9, 2, 9, 0));
+
+    const first = await reloadPage();
+    const older = first.store.getState().sessions[0];
+
+    vi.setSystemTime(new Date(2026, 9, 2, 10, 0));
+
+    const newer = await first.store.getState().createSession('Loja');
+
+    await first.store.getState().selectSession(older.id);
+    first.db.close();
+
+    const reloaded = await reloadPage();
+
+    expect(reloaded.store.getState().currentSessionId).toBe(older.id);
+    expect(reloaded.store.getState().sessions.map((session) => session.id)).toEqual([
+      newer.id,
+      older.id,
+    ]);
+    expect((await reloaded.db.sessions.get(older.id)).updatedAt).toBe(older.updatedAt);
+  });
+
+  it('abre a alterada por último quando a última aberta não existe mais', async () => {
+    const values = stubLocalStorage();
+
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 9, 2, 9, 0));
+
+    const first = await reloadPage();
+
+    vi.setSystemTime(new Date(2026, 9, 2, 10, 0));
+
+    const newer = await first.store.getState().createSession('Loja');
+
+    values.set('stockvision:ultima-sessao', 'sessao-apagada');
+    first.db.close();
+
+    const reloaded = await reloadPage();
+
+    expect(reloaded.store.getState().currentSessionId).toBe(newer.id);
   });
 
   it('recusa nome vazio e acima de 80 caracteres sem gravar', async () => {

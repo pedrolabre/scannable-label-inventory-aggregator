@@ -33,6 +33,14 @@ function viewRadio(label) {
   );
 }
 
+function productRow(code) {
+  return column('produtos').querySelector(`tr[data-produto="${CSS.escape(code)}"]`);
+}
+
+function tableCodes() {
+  return [...column('produtos').querySelectorAll('tbody tr')].map((row) => row.dataset.produto);
+}
+
 function openSessionWith(readings, sources = [sourceOf('f1')]) {
   useSessionStore.setState({
     sessions: [SESSION],
@@ -57,7 +65,7 @@ describe('App', () => {
     await view.render(<App />);
 
     const columns = [...view.container.querySelectorAll('main section[aria-label]')]
-      .filter((section) => section.querySelector(':scope > div > h2'))
+      .filter((section) => section.querySelector(':scope > div:first-child h2'))
       .map((section) => section.getAttribute('aria-label'));
 
     expect(columns).toEqual(['Entrada', 'Produtos', 'Detalhe']);
@@ -132,7 +140,8 @@ describe('App', () => {
     expect(statusValue('produtos')).toBe('2');
     expect(statusValue('valor')).toBe('R$ 26,98');
     expect(statusValue('conflitos')).toBe('0');
-    expect(column('produtos').textContent).toContain('2 produtos lidos nesta sessão.');
+    expect(tableCodes()).toEqual(['A-1', 'B-2']);
+    expect(productRow('A-1').textContent).toBe('A-1PRODUTO A-1R$ 10,992R$ 21,98');
 
     await view.update(() => {
       useSessionStore.setState({
@@ -146,6 +155,9 @@ describe('App', () => {
     expect(statusValue('exemplares')).toBe('4');
     expect(statusValue('conflitos')).toBe('1');
     expect(statusValue('valor')).toBe('—');
+    expect(productRow('B-2').querySelector('[data-marca="conflict"]').textContent).toBe(
+      'conflito em preço',
+    );
   });
 
   it('monta a tela sem nenhuma chamada de rede', async () => {
@@ -219,6 +231,6 @@ describe('App', () => {
     expect(statusValue('exemplares')).toBe('1');
     expect(statusValue('produtos')).toBe('1');
     expect(statusValue('valor')).toBe('R$ 10,00');
-    expect(column('produtos').textContent).toContain('1 produto lido nesta sessão.');
+    expect(tableCodes()).toEqual(['A-1']);
   });
 });

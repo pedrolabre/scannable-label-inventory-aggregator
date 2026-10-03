@@ -20,6 +20,18 @@ export const SHELL_VIEWS = Object.freeze({
 });
 
 /**
+ * Consulta do ponto de corte, a mesma largura do `lg` do `tailwind.config.js`.
+ * Serve ao que o CSS nao resolve sozinho, como decidir para onde vai o foco
+ * depois de uma troca de vista que so existe na tela estreita.
+ */
+export const WIDE_SCREEN_QUERY = '(min-width: 1100px)';
+
+/** `true` a partir do ponto de corte; sem `matchMedia`, vale a tela estreita. */
+export function isWideScreen() {
+  return typeof window.matchMedia === 'function' && window.matchMedia(WIDE_SCREEN_QUERY).matches;
+}
+
+/**
  * Contorno da aplicacao: cinco faixas em coluna, dentro da altura da janela.
  *
  *     cabecalho          48 px    nome e, na tela estreita, a barra de vistas
@@ -99,7 +111,9 @@ export default function AppShell({
             data-vista-ativa={view === activeView ? '' : undefined}
             className={cx(
               'min-h-0 min-w-0 flex-col lg:flex',
-              view === SHELL_VIEWS.PRODUCTS ? 'lg:border-x lg:border-neutro-borda' : 'bg-neutro-branco',
+              view === SHELL_VIEWS.PRODUCTS
+                ? 'lg:border-x lg:border-neutro-borda'
+                : 'bg-neutro-branco',
               view === activeView ? 'flex' : 'hidden',
             )}
           >

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import { defaultSessionName } from '../domain/schemas/sessionSchema.js';
 import { getAppDatabase } from '../storage/indexed-db.js';
+import { readLastSessionId, writeLastSessionId } from '../storage/lastSessionStorage.js';
 import { listReadingsBySession } from '../storage/readingRepository.js';
 import {
   deleteResolution,
@@ -36,9 +37,10 @@ import { withoutSource } from './sourceRemoval.js';
  * leituras e resolucoes, sempre lidos do banco. O relatorio e derivado desse
  * estado por quem o exibe, e nao mora aqui.
  *
- * `sessions` fica da mais recente para a mais antiga, e a sessao aberta na
- * abertura da aplicacao e a primeira da lista. Sem nenhuma sessao gravada, uma
- * nova e criada com o nome do dia.
+ * `sessions` fica da mais recente para a mais antiga. Na abertura da aplicacao
+ * abre a ultima sessao aberta neste navegador, ou a primeira da lista quando
+ * ela nao existe mais. Sem nenhuma sessao gravada, uma nova e criada com o
+ * nome do dia.
  */
 
 const EMPTY_CONTENT = Object.freeze({ sources: [], readings: [], resolutions: [] });
@@ -96,6 +98,7 @@ export const useSessionStore = create((set, get) => {
 
       if (load === latestLoad) {
         set({ ...extra, currentSessionId: sessionId, ...content, isLoading: false });
+        writeLastSessionId(sessionId);
       }
 
       return content;
@@ -114,6 +117,8 @@ export const useSessionStore = create((set, get) => {
 
   async function createAndOpen(name) {
     const stored = await createStoredSession(db(), { name });
+
+    writeLastSessionId(stored.id);
 
     latestLoad += 1;
     loadingSessionId = null;
@@ -201,7 +206,7 @@ export const useSessionStore = create((set, get) => {
       return;
     }
 
-    const current = get().currentSessionId;
+    const current = get().currentSessionId ?? readLastSessionId();
     const target = sessions.some((session) => session.id === current) ? current : sessions[0].id;
 
     await openSession(target, { sessions });
@@ -215,8 +220,9 @@ export const useSessionStore = create((set, get) => {
     loadError: null,
 
     /**
-     * Le as sessoes e abre a atual, ou a mais recente quando nenhuma esta
-     * aberta. Roda na abertura da aplicacao e depois de uma escrita que falhou.
+     * Le as sessoes e abre a atual; sem sessao aberta, a ultima aberta neste
+     * navegador, ou a mais recente. Roda na abertura da aplicacao e depois de
+     * uma escrita que falhou.
      */
     hydrate: () => {
       if (pendingHydration) {
