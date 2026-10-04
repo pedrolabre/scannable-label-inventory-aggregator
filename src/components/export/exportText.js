@@ -27,15 +27,35 @@ export function missingProductChoicesOf(report) {
 
 /**
  * Aviso das escolhas sem produto, com a contagem, o motivo do relatorio e os
- * codigos sem repeticao, na ordem em que vieram.
+ * codigos sem repeticao, na ordem em que vieram. O CSV nao as leva; o XML as
+ * lista entre as escolhas ignoradas.
  */
 export function missingProductText(choices) {
   const codes = [...new Set(choices.map((choice) => choice.systemCode))].join(', ');
   const count = countLabel(choices.length, 'escolha gravada', 'escolhas gravadas');
-  const verb = choices.length === 1 ? 'ficou' : 'ficaram';
-  const returns = choices.length === 1 ? 'Ela volta' : 'Elas voltam';
+  const single = choices.length === 1;
+  const verb = single ? 'ficou' : 'ficaram';
+  const listed = single ? 'O XML a lista' : 'O XML as lista';
+  const returns = single ? 'Ela volta' : 'Elas voltam';
 
-  return `${count} ${verb} de fora dos arquivos: ${choices[0].message} (${codes}). ${returns} a valer se a foto do produto for enviada de novo.`;
+  return `${count} ${verb} de fora do CSV: ${choices[0].message} (${codes}). ${listed} entre as escolhas ignoradas. ${returns} a valer se a foto do produto for enviada de novo.`;
+}
+
+/**
+ * Por que a sessao gera menos arquivos: sem foto, nenhum; com foto e sem
+ * produto, so o XML, que leva as fotos e os textos rejeitados. `null` quando
+ * nada falta.
+ */
+export function emptySessionText(report) {
+  if (report.header.sourceCount === 0) {
+    return 'Nenhuma foto nesta sessão.';
+  }
+
+  if (report.products.length === 0) {
+    return 'Nenhum produto nesta sessão. O XML ainda leva as fotos e os textos rejeitados.';
+  }
+
+  return null;
 }
 
 export function doneText(fileName) {

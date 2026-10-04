@@ -3,7 +3,7 @@
 import 'fake-indexeddb/auto';
 
 import { act } from 'react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import App from './App.jsx';
 import { getAppDatabase } from './storage/indexed-db.js';
@@ -16,7 +16,8 @@ import { useReactRoot } from './test-fixtures/reactRoot.js';
  * Exportacao dentro da tela inteira, com o banco real (`fake-indexeddb`): o
  * gatilho do cabecalho, o bloqueio com o `118789` de `qr-4.png` e `qr-8.png`
  * em conflito de EAN e NCM, a ida ao produto, a resolucao no Detalhe e o
- * download interceptado, com o arquivo lido de volta.
+ * download interceptado, com o arquivo lido de volta. O fuso fica fixo, para a
+ * hora do XML e a do nome do arquivo nao dependerem da maquina.
  */
 
 const initialSession = useSessionStore.getState();
@@ -26,6 +27,20 @@ const view = useReactRoot({
 
 let downloads = [];
 let revoked = [];
+
+const previousTimeZone = process.env.TZ;
+
+beforeAll(() => {
+  process.env.TZ = 'America/Sao_Paulo';
+});
+
+afterAll(() => {
+  if (previousTimeZone === undefined) {
+    delete process.env.TZ;
+  } else {
+    process.env.TZ = previousTimeZone;
+  }
+});
 
 beforeEach(() => {
   downloads = [];
@@ -134,7 +149,7 @@ describe('App com a exportação', () => {
     expect(trigger().disabled).toBe(true);
   });
 
-  it('bloqueia com conflito aberto, leva ao produto, libera depois da escolha e baixa o CSV', async () => {
+  it('bloqueia com conflito aberto, leva ao produto, libera depois da escolha e baixa o CSV e o XML', async () => {
     await openSessionWithConflict();
     await view.render(<App />);
 
@@ -202,5 +217,57 @@ describe('App com a exportação', () => {
     expect((await readText(downloads[1].blob)).split('\r\n')[0]).toBe(
       'Código;Exemplar;Leituras;Fotos;Aviso;Texto LF1',
     );
+
+    const xmlButton = dialog.querySelector('[data-baixar="xml"]');
+
+    await view.focus(xmlButton);
+    await view.click(xmlButton);
+
+    expect(downloads).toHaveLength(3);
+    expect(downloads[2].fileName).toMatch(/^inventario-\d{4}-\d{2}-\d{2}-\d{4}\.xml$/);
+    expect(revoked).toEqual(downloads.map((entry) => entry.href));
+    expect(dialog.querySelector('[data-arquivo-gerado]').textContent).toBe(
+      `Arquivo gerado: ${downloads[2].fileName}`,
+    );
+    expect(document.activeElement).toBe(xmlButton);
+
+    const xml = await readText(downloads[2].blob);
+    const xmlDocument = new DOMParser().parseFromString(xml, 'application/xml');
+    const root = xmlDocument.documentElement;
+    const corner = xmlDocument.querySelector('produto[codigo="118789"]');
+    const [, day, time] = downloads[2].fileName.match(/^inventario-(\d{4}-\d{2}-\d{2})-(\d{4})/);
+
+    expect(xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>\n<inventario versao="1"')).toBe(
+      true,
+    );
+    expect(xmlDocument.getElementsByTagName('parsererror')).toHaveLength(0);
+    expect(root.getAttribute('gerado-em')).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}-03:00$/);
+    expect(root.getAttribute('gerado-em').slice(0, 16)).toBe(
+      `${day}T${time.slice(0, 2)}:${time.slice(2)}`,
+    );
+    expect(xmlDocument.querySelector('totais').getAttribute('fotos')).toBe('2');
+    expect(xmlDocument.querySelector('totais').getAttribute('conflitos-resolvidos')).toBe('2');
+    expect(corner.getAttribute('quantidade')).toBe('2');
+    expect(corner.getAttribute('preco-centavos')).toBe('85990');
+    expect(corner.getAttribute('total-centavos')).toBe('171980');
+    expect(corner.querySelector('nome').textContent).toBe('CANTINHO CAFE RUBI');
+    expect(corner.querySelector('ean').textContent).toBe('7899075420416');
+    expect(corner.querySelector('ncm').textContent).toBe('94035000');
+    expect(
+      [...corner.querySelectorAll('resolvido')].map((node) => [
+        node.getAttribute('campo'),
+        node.getAttribute('valor'),
+      ]),
+    ).toEqual([
+      ['ean', '7899075420416'],
+      ['ncm', '94035000'],
+    ]);
+    expect(corner.querySelectorAll('exemplar')).toHaveLength(2);
+    expect(xmlDocument.querySelector('produto[codigo="DEMO-005"] aviso').getAttribute('tipo')).toBe(
+      'probable-reprint',
+    );
+    expect(xmlDocument.querySelectorAll('produtos > produto')).toHaveLength(10);
+    expect(xmlDocument.querySelectorAll('rejeitados > rejeitado')).toHaveLength(0);
+    expect(xmlDocument.querySelectorAll('fotos > foto')).toHaveLength(2);
   });
 });

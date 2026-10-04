@@ -7,6 +7,7 @@ import { summaryProductOf } from '../../test-fixtures/readingFixtures.js';
 import {
   blockerText,
   doneText,
+  emptySessionText,
   firstOpenConflictCode,
   missingProductChoicesOf,
   missingProductText,
@@ -55,11 +56,21 @@ describe('textos da exportação', () => {
 
     expect(missing.map((entry) => entry.systemCode)).toEqual(['118789', '118789', 'DEMO-002']);
     expect(missingProductText(missing)).toBe(
-      `3 escolhas gravadas ficaram de fora dos arquivos: ${NO_PRODUCT} (118789, DEMO-002). Elas voltam a valer se a foto do produto for enviada de novo.`,
+      `3 escolhas gravadas ficaram de fora do CSV: ${NO_PRODUCT} (118789, DEMO-002). O XML as lista entre as escolhas ignoradas. Elas voltam a valer se a foto do produto for enviada de novo.`,
     );
     expect(missingProductText([choice('118789', 'ean')])).toBe(
-      `1 escolha gravada ficou de fora dos arquivos: ${NO_PRODUCT} (118789). Ela volta a valer se a foto do produto for enviada de novo.`,
+      `1 escolha gravada ficou de fora do CSV: ${NO_PRODUCT} (118789). O XML a lista entre as escolhas ignoradas. Ela volta a valer se a foto do produto for enviada de novo.`,
     );
+  });
+
+  it('diz o que falta na sessão sem foto e na sessão sem produto', () => {
+    const withPhotos = (sourceCount, products) => ({ header: { sourceCount }, products });
+
+    expect(emptySessionText(withPhotos(0, []))).toBe('Nenhuma foto nesta sessão.');
+    expect(emptySessionText(withPhotos(2, []))).toBe(
+      'Nenhum produto nesta sessão. O XML ainda leva as fotos e os textos rejeitados.',
+    );
+    expect(emptySessionText(withPhotos(2, [summaryProductOf('A')]))).toBeNull();
   });
 
   it('confirma o arquivo gerado pelo nome', () => {

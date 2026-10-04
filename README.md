@@ -18,9 +18,10 @@ Em desenvolvimento inicial.
 - Divergência de nome, preço, EAN ou NCM no mesmo código é resolvida no Detalhe, campo a campo, antes da exportação: cada variante mostra quantos exemplares a carregam e quais, a escolha fica gravada na sessão e pode ser desfeita, e a quantidade não muda.
 - Escolha gravada que deixou de valer aparece no Detalhe com o motivo; a do campo que deixou de divergir pode ser descartada.
 - Textos fora do formato e fotos que não abrem ficam num diálogo aberto pela coluna Entrada, com a foto e o motivo; o texto rejeitado aparece cortado em 120 caracteres.
-- Exportação pelo botão `Exportar` do topo, num diálogo, com os arquivos gerados no próprio aparelho: o CSV do resumo por produto e o CSV dos exemplares, cada um no próprio botão, com o nome `inventario-AAAA-MM-DD-HHMM.csv` na data e hora locais da geração (o dos exemplares com `-exemplares` no fim).
+- Exportação pelo botão `Exportar` do topo, num diálogo, com os arquivos gerados no próprio aparelho: o CSV do resumo por produto, o CSV dos exemplares e o XML do relatório completo, cada um no próprio botão, com o nome `inventario-AAAA-MM-DD-HHMM.<ext>` na data e hora locais da geração (o dos exemplares com `-exemplares` no fim).
 - O CSV abre em planilha em português: marca UTF-8, colunas separadas por ponto e vírgula, cabeçalho em português, valores em centavos inteiros e numa coluna em reais, e o texto que a planilha leria como fórmula precedido de apóstrofo. A mesma sessão gera o mesmo arquivo, byte a byte.
-- Com conflito aberto a exportação fica bloqueada, com a contagem à vista e o atalho para o primeiro produto em conflito; sessão sem produto não gera arquivo; escolha gravada de produto que saiu da sessão aparece como aviso no diálogo.
+- O XML (`versao="1"`) leva, além do que está no CSV, a sessão, os totais, a hora da geração com o fuso do aparelho (`2026-10-06T17:03:48-03:00`), os conflitos resolvidos com o valor escolhido e as variantes, os textos rejeitados inteiros com o motivo, as fotos com o estado e o motivo da falha, e as escolhas gravadas que deixaram de valer. Exemplares aninhados no produto, valores só em centavos inteiros, cada motivo com o código e a frase, valor ausente fora do arquivo, fotos pelo identificador ao lado do nome. Todo texto é escapado, e o caractere que o XML 1.0 não aceita vira `U+FFFD`. A mesma sessão gera o mesmo arquivo, byte a byte.
+- Com conflito aberto a exportação fica bloqueada, com a contagem à vista e o atalho para o primeiro produto em conflito; sessão sem produto gera só o XML, e sessão sem foto não gera arquivo; escolha gravada de produto que saiu da sessão aparece como aviso no diálogo.
 - Sessões de inventário guardadas no IndexedDB, abertas, criadas, renomeadas e apagadas num diálogo, com o nome padrão de data e hora. Ao recarregar, volta a última sessão aberta no aparelho. As fotos não são guardadas.
 - Fotos da sessão listadas com os textos lidos; remover uma foto tira também os textos dela, e os totais se refazem na hora.
 - PWA instalável e utilizável offline.
@@ -165,9 +166,11 @@ scannable-label-inventory-aggregator/
         detailText.js             textos da coluna e do diálogo
         detailText.test.js
       export/
-        ExportDialog.jsx          diálogo de exportação: bloqueio, avisos e os arquivos CSV
+        ExportDialog.jsx          diálogo de exportação: bloqueio, avisos e as seções CSV e XML
         ExportDialog.test.jsx
-        useReportExport.js        sequência da exportação, uma por vez, com o instante no nome do arquivo
+        FileRow.jsx               linha de arquivo do diálogo, com o botão de baixar
+        FileRow.test.jsx
+        useReportExport.js        sequência da exportação, uma por vez, com o instante no nome do arquivo e o fuso no XML
         useReportExport.test.jsx
         exportText.js             frases do bloqueio, do aviso e da confirmação
         exportText.test.js
@@ -235,8 +238,14 @@ scannable-label-inventory-aggregator/
         productSearch.test.js
         csvExport.js              resumo por produto e exemplares em CSV para planilha em português
         csvExport.test.js
+        xmlExport.js              relatório inteiro em XML, com a versão da estrutura
+        xmlExport.test.js
+        xmlWriter.js              escrita do XML: declaração, indentação, escape e caracteres fora do XML 1.0
+        xmlWriter.test.js
         exportFileName.js         nome do arquivo exportado com a data e a hora locais
         exportFileName.test.js
+        exportTimestamp.js        hora da geração com o deslocamento do fuso
+        exportTimestamp.test.js
     storage/
       indexed-db.js               banco StockVisionDB, tabelas e índices
       indexed-db.test.js

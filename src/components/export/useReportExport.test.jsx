@@ -4,11 +4,12 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { buildCopiesCsv, buildSummaryCsv } from '../../domain/services/csvExport.js';
 import { buildInventoryReport } from '../../domain/services/inventoryReport.js';
+import { buildInventoryXml } from '../../domain/services/xmlExport.js';
 import { formatCentavosAsBRL } from '../../lib/currency.js';
 import { lf1Text, readingOf, sourceOf } from '../../test-fixtures/readingFixtures.js';
 import { useReactRoot } from '../../test-fixtures/reactRoot.js';
 
-import { CSV_FILES, EXPORT_STATUS, useReportExport } from './useReportExport.js';
+import { CSV_FILES, EXPORT_STATUS, XML_FILE, useReportExport } from './useReportExport.js';
 
 const view = useReactRoot();
 
@@ -60,7 +61,7 @@ describe('useReportExport', () => {
     const download = vi.fn();
 
     await view.render(<Harness now={() => INSTANT} download={download} />);
-    await view.update(() => latest.exportCsv(report, CSV_FILES.SUMMARY));
+    await view.update(() => latest.exportFile(report, CSV_FILES.SUMMARY));
 
     expect(download).toHaveBeenCalledTimes(1);
 
@@ -82,8 +83,8 @@ describe('useReportExport', () => {
     const now = vi.fn(() => instants.shift());
 
     await view.render(<Harness now={now} download={download} />);
-    await view.update(() => latest.exportCsv(report, CSV_FILES.SUMMARY));
-    await view.update(() => latest.exportCsv(report, CSV_FILES.COPIES));
+    await view.update(() => latest.exportFile(report, CSV_FILES.SUMMARY));
+    await view.update(() => latest.exportFile(report, CSV_FILES.COPIES));
 
     expect(now).toHaveBeenCalledTimes(2);
     expect(download.mock.calls.map(([, name]) => name)).toEqual([
@@ -95,13 +96,42 @@ describe('useReportExport', () => {
     ]);
   });
 
+  it('baixa o XML com o nome .xml e a hora local com o deslocamento do fuso', async () => {
+    const download = vi.fn();
+
+    await view.render(<Harness now={() => INSTANT} download={download} />);
+    await view.update(() => latest.exportFile(report, XML_FILE));
+
+    const [blob, fileName] = download.mock.calls[0];
+    const stamped = { ...report, header: { ...report.header, generatedAt: INSTANT.toISOString() } };
+    const expected = buildInventoryXml(stamped, { offsetMinutes: -180 });
+
+    expect(fileName).toBe('inventario-2026-10-06-1603.xml');
+    expect(blob.type).toBe('application/xml;charset=utf-8');
+    expect(await readBlob(blob)).toEqual([...new TextEncoder().encode(expected)]);
+    expect(expected).toContain('gerado-em="2026-10-06T16:03:48-03:00"');
+    expect(latest.status).toBe(EXPORT_STATUS.DONE);
+    expect(latest.fileName).toBe('inventario-2026-10-06-1603.xml');
+  });
+
+  it('mostra a falha quando o relatório não pode virar XML', async () => {
+    const download = vi.fn();
+
+    await view.render(<Harness now={() => INSTANT} download={download} />);
+    await view.update(() => latest.exportFile({ ...report, exportable: false }, XML_FILE));
+
+    expect(download).not.toHaveBeenCalled();
+    expect(latest.status).toBe(EXPORT_STATUS.FAILED);
+    expect(latest.error).toBe('Não foi possível gerar o arquivo. Tente de novo.');
+  });
+
   it('faz uma exportação por vez', async () => {
     const download = vi.fn(() => {
-      latest.exportCsv(report, CSV_FILES.COPIES);
+      latest.exportFile(report, CSV_FILES.COPIES);
     });
 
     await view.render(<Harness now={() => INSTANT} download={download} />);
-    await view.update(() => latest.exportCsv(report, CSV_FILES.SUMMARY));
+    await view.update(() => latest.exportFile(report, CSV_FILES.SUMMARY));
 
     expect(download).toHaveBeenCalledTimes(1);
     expect(latest.status).toBe(EXPORT_STATUS.DONE);
@@ -113,14 +143,14 @@ describe('useReportExport', () => {
     });
 
     await view.render(<Harness now={() => INSTANT} download={download} />);
-    await view.update(() => latest.exportCsv(report, CSV_FILES.SUMMARY));
+    await view.update(() => latest.exportFile(report, CSV_FILES.SUMMARY));
 
     expect(latest.status).toBe(EXPORT_STATUS.FAILED);
     expect(latest.error).toBe('Não foi possível gerar o arquivo. Tente de novo.');
     expect(latest.fileName).toBeNull();
 
     download.mockImplementation(() => {});
-    await view.update(() => latest.exportCsv(report, CSV_FILES.SUMMARY));
+    await view.update(() => latest.exportFile(report, CSV_FILES.SUMMARY));
 
     expect(download).toHaveBeenCalledTimes(2);
     expect(latest.status).toBe(EXPORT_STATUS.DONE);
