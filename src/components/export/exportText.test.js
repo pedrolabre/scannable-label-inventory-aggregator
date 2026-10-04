@@ -1,0 +1,70 @@
+// @vitest-environment node
+
+import { describe, expect, it } from 'vitest';
+
+import { summaryProductOf } from '../../test-fixtures/readingFixtures.js';
+
+import {
+  blockerText,
+  doneText,
+  firstOpenConflictCode,
+  missingProductChoicesOf,
+  missingProductText,
+} from './exportText.js';
+
+const NO_PRODUCT = 'o produto não aparece mais nas leituras da sessão';
+
+function choice(systemCode, field, reason = 'no-product') {
+  return { systemCode, field, value: 'X', reason, message: NO_PRODUCT };
+}
+
+describe('textos da exportação', () => {
+  it('abre a frase do bloqueio com maiúscula e ponto final', () => {
+    expect(
+      blockerText({
+        code: 'open-conflicts',
+        count: 2,
+        message: 'exportação bloqueada: 2 conflitos abertos',
+      }),
+    ).toBe('Exportação bloqueada: 2 conflitos abertos.');
+  });
+
+  it('acha o primeiro produto com conflito aberto na ordem do relatório', () => {
+    const report = {
+      products: [
+        summaryProductOf('A'),
+        summaryProductOf('B', { openConflictFields: ['ean'] }),
+        summaryProductOf('C', { openConflictFields: ['displayName'] }),
+      ],
+    };
+
+    expect(firstOpenConflictCode(report)).toBe('B');
+    expect(firstOpenConflictCode({ products: [summaryProductOf('A')] })).toBeNull();
+  });
+
+  it('separa as escolhas sem produto e as descreve com a contagem e os códigos sem repetição', () => {
+    const report = {
+      ignoredChoices: [
+        choice('118789', 'ean'),
+        choice('DEMO-001', 'displayName', 'no-conflict'),
+        choice('118789', 'ncm'),
+        choice('DEMO-002', 'priceInCentavos'),
+      ],
+    };
+    const missing = missingProductChoicesOf(report);
+
+    expect(missing.map((entry) => entry.systemCode)).toEqual(['118789', '118789', 'DEMO-002']);
+    expect(missingProductText(missing)).toBe(
+      `3 escolhas gravadas ficaram de fora dos arquivos: ${NO_PRODUCT} (118789, DEMO-002). Elas voltam a valer se a foto do produto for enviada de novo.`,
+    );
+    expect(missingProductText([choice('118789', 'ean')])).toBe(
+      `1 escolha gravada ficou de fora dos arquivos: ${NO_PRODUCT} (118789). Ela volta a valer se a foto do produto for enviada de novo.`,
+    );
+  });
+
+  it('confirma o arquivo gerado pelo nome', () => {
+    expect(doneText('inventario-2026-10-06-1603.csv')).toBe(
+      'Arquivo gerado: inventario-2026-10-06-1603.csv',
+    );
+  });
+});

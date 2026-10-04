@@ -18,7 +18,9 @@ Em desenvolvimento inicial.
 - Divergência de nome, preço, EAN ou NCM no mesmo código é resolvida no Detalhe, campo a campo, antes da exportação: cada variante mostra quantos exemplares a carregam e quais, a escolha fica gravada na sessão e pode ser desfeita, e a quantidade não muda.
 - Escolha gravada que deixou de valer aparece no Detalhe com o motivo; a do campo que deixou de divergir pode ser descartada.
 - Textos fora do formato e fotos que não abrem ficam num diálogo aberto pela coluna Entrada, com a foto e o motivo; o texto rejeitado aparece cortado em 120 caracteres.
-- Exportação em CSV, XML e PDF.
+- Exportação pelo botão `Exportar` do topo, num diálogo, com os arquivos gerados no próprio aparelho: o CSV do resumo por produto e o CSV dos exemplares, cada um no próprio botão, com o nome `inventario-AAAA-MM-DD-HHMM.csv` na data e hora locais da geração (o dos exemplares com `-exemplares` no fim).
+- O CSV abre em planilha em português: marca UTF-8, colunas separadas por ponto e vírgula, cabeçalho em português, valores em centavos inteiros e numa coluna em reais, e o texto que a planilha leria como fórmula precedido de apóstrofo. A mesma sessão gera o mesmo arquivo, byte a byte.
+- Com conflito aberto a exportação fica bloqueada, com a contagem à vista e o atalho para o primeiro produto em conflito; sessão sem produto não gera arquivo; escolha gravada de produto que saiu da sessão aparece como aviso no diálogo.
 - Sessões de inventário guardadas no IndexedDB, abertas, criadas, renomeadas e apagadas num diálogo, com o nome padrão de data e hora. Ao recarregar, volta a última sessão aberta no aparelho. As fotos não são guardadas.
 - Fotos da sessão listadas com os textos lidos; remover uma foto tira também os textos dela, e os totais se refazem na hora.
 - PWA instalável e utilizável offline.
@@ -94,10 +96,11 @@ scannable-label-inventory-aggregator/
     App.test.jsx
     AppProducts.test.jsx          coluna Produtos dentro da tela inteira
     AppDetail.test.jsx            coluna Detalhe e diálogo de rejeitados dentro da tela inteira, com o banco real
+    AppExport.test.jsx            exportação dentro da tela inteira, com o banco real e o download interceptado
     components/
       AppShell.jsx                contorno de janela única: três colunas na tela larga, uma por vez na estreita
       AppShell.test.jsx
-      AppHeader.jsx               nome do produto e barra de vistas da tela estreita
+      AppHeader.jsx               nome do produto, botão Exportar e barra de vistas da tela estreita
       AppHeader.test.jsx
       useInventoryReport.js       relatório da sessão aberta, derivado do store
       useInventoryReport.test.jsx
@@ -161,6 +164,13 @@ scannable-label-inventory-aggregator/
         productDetail.test.js
         detailText.js             textos da coluna e do diálogo
         detailText.test.js
+      export/
+        ExportDialog.jsx          diálogo de exportação: bloqueio, avisos e os arquivos CSV
+        ExportDialog.test.jsx
+        useReportExport.js        sequência da exportação, uma por vez, com o instante no nome do arquivo
+        useReportExport.test.jsx
+        exportText.js             frases do bloqueio, do aviso e da confirmação
+        exportText.test.js
       sessions/
         SessionPicker.jsx         sessão aberta e botão Sessões no topo da Entrada
         SessionPicker.test.jsx
@@ -223,6 +233,10 @@ scannable-label-inventory-aggregator/
         reportSections.test.js
         productSearch.js          busca no resumo sem diferença de maiúsculas e acentos
         productSearch.test.js
+        csvExport.js              resumo por produto e exemplares em CSV para planilha em português
+        csvExport.test.js
+        exportFileName.js         nome do arquivo exportado com a data e a hora locais
+        exportFileName.test.js
     storage/
       indexed-db.js               banco StockVisionDB, tabelas e índices
       indexed-db.test.js
@@ -272,6 +286,8 @@ scannable-label-inventory-aggregator/
       sha256.test.js
       currency.js                 valor em centavos escrito como R$ 1.234,56
       currency.test.js
+      download.js                 download do arquivo gerado na página
+      download.test.js
     test-fixtures/
       qrFixtures.js               textos das imagens de teste
       readPngFixture.js           leitura dos PNGs de teste na suíte

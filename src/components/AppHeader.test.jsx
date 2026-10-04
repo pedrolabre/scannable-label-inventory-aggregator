@@ -56,4 +56,33 @@ describe('AppHeader', () => {
       SHELL_VIEWS.INTAKE,
     ]);
   });
+
+  it('traz o gatilho de exportar na linha do nome, com ícone e texto, desligável', async () => {
+    const onExport = vi.fn();
+
+    await view.render(<AppHeader onViewChange={() => {}} onExport={onExport} />);
+
+    const trigger = view.container.querySelector('[data-gatilho-exportar]');
+
+    expect(trigger.tagName).toBe('BUTTON');
+    expect(trigger.textContent).toBe('Exportar');
+    expect(trigger.querySelector('svg').getAttribute('aria-hidden')).toBe('true');
+    expect(trigger.parentElement.className).toContain('h-topo');
+    expect(trigger.className).toContain('h-controle');
+    expect(trigger.className).toContain('focus-visible:outline');
+
+    await view.click(trigger);
+
+    expect(onExport).toHaveBeenCalledTimes(1);
+
+    await view.render(<AppHeader onViewChange={() => {}} onExport={onExport} exportDisabled />);
+
+    expect(view.container.querySelector('[data-gatilho-exportar]').disabled).toBe(true);
+  });
+
+  it('fica sem o gatilho quando não recebe a ação', async () => {
+    await view.render(<AppHeader onViewChange={() => {}} />);
+
+    expect(view.container.querySelector('[data-gatilho-exportar]')).toBeNull();
+  });
 });

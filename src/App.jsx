@@ -5,6 +5,7 @@ import AppShell, { SHELL_VIEWS, isWideScreen } from './components/AppShell.jsx';
 import CaptureColumn from './components/capture/CaptureColumn.jsx';
 import DetailColumn from './components/detail/DetailColumn.jsx';
 import RejectedDialog from './components/detail/RejectedDialog.jsx';
+import ExportDialog from './components/export/ExportDialog.jsx';
 import StatusBar from './components/layout/StatusBar.jsx';
 import ProductsColumn from './components/products/ProductsColumn.jsx';
 import SessionDialog from './components/sessions/SessionDialog.jsx';
@@ -19,22 +20,30 @@ import useInventoryReport from './components/useInventoryReport.js';
  * contagem e fotografar.
  *
  * O instante do relatorio e fixado uma vez, na montagem: a tela nao o mostra, e
- * assim so o conteudo da sessao refaz a conta.
+ * assim so o conteudo da sessao refaz a conta. A exportacao toma um instante
+ * novo a cada arquivo.
  *
  * Um dialogo por vez, e por isso `openModal` guarda um identificador e nao uma
  * pilha: dois dialogos abertos dariam duas ordens de foco e dois `Esc`. Ele
- * tambem morre no recarregamento. Sao dois: sessoes, aberto pelo topo da
- * Entrada, e rejeitados e fotos com falha, aberto pelo gatilho acima das fotos
- * da sessao, que so aparece quando ha o que mostrar.
+ * tambem morre no recarregamento. Sao tres: sessoes, aberto pelo topo da
+ * Entrada; rejeitados e fotos com falha, aberto pelo gatilho acima das fotos
+ * da sessao, que so aparece quando ha o que mostrar; e exportacao, aberto pelo
+ * cabecalho sempre que ha sessao aberta.
  *
  * O produto selecionado e estado de tela como os outros: o codigo do sistema
  * e a sessao em que foi escolhido. A selecao se desfaz quando o produto sai do
  * relatorio (a foto dele foi removida) ou quando outra sessao abre, mesmo que
  * ela tenha um produto com o mesmo codigo. Escolher um produto leva a vista
- * Detalhe, que na tela estreita e a unica a mostra.
+ * Detalhe, que na tela estreita e a unica a mostra. `Revisar conflitos`, no
+ * dialogo de exportacao, escolhe o primeiro produto com conflito aberto e
+ * fecha o dialogo.
  */
 
-const MODALS = Object.freeze({ SESSIONS: 'sessoes', ISSUES: 'rejeitados' });
+const MODALS = Object.freeze({
+  SESSIONS: 'sessoes',
+  ISSUES: 'rejeitados',
+  EXPORT: 'exportacao',
+});
 
 const NO_SESSION = 'sem-sessao';
 
@@ -71,11 +80,30 @@ export default function App() {
     [sessionId],
   );
 
+  // Vindo do dialogo, o foco vai ao nome do produto nas duas larguras: o gesto
+  // que o pediu sai da tela junto com o dialogo.
+  const reviewConflict = useCallback(
+    (systemCode) => {
+      setOpenModal(null);
+      setSelection({ sessionId, systemCode });
+      setActiveView(SHELL_VIEWS.DETAIL);
+      setDetailFocusRequest((request) => request + 1);
+    },
+    [sessionId],
+  );
+
   return (
     <>
       <AppShell
         activeView={activeView}
-        header={<AppHeader activeView={activeView} onViewChange={setActiveView} />}
+        header={
+          <AppHeader
+            activeView={activeView}
+            onViewChange={setActiveView}
+            onExport={() => setOpenModal(MODALS.EXPORT)}
+            exportDisabled={!report}
+          />
+        }
         left={
           <CaptureColumn
             onOpenSessions={() => setOpenModal(MODALS.SESSIONS)}
@@ -106,6 +134,9 @@ export default function App() {
       {openModal === MODALS.SESSIONS ? <SessionDialog onClose={closeModal} /> : null}
       {openModal === MODALS.ISSUES && report ? (
         <RejectedDialog rejected={report.rejected} sources={report.sources} onClose={closeModal} />
+      ) : null}
+      {openModal === MODALS.EXPORT && report ? (
+        <ExportDialog report={report} onClose={closeModal} onReviewConflicts={reviewConflict} />
       ) : null}
     </>
   );
