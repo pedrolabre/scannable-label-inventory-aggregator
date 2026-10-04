@@ -56,10 +56,10 @@ describe('textos da exportação', () => {
 
     expect(missing.map((entry) => entry.systemCode)).toEqual(['118789', '118789', 'DEMO-002']);
     expect(missingProductText(missing)).toBe(
-      `3 escolhas gravadas ficaram de fora do CSV: ${NO_PRODUCT} (118789, DEMO-002). O XML as lista entre as escolhas ignoradas. Elas voltam a valer se a foto do produto for enviada de novo.`,
+      `3 escolhas gravadas ficaram de fora do CSV: ${NO_PRODUCT} (118789, DEMO-002). O XML e o PDF as listam entre as escolhas ignoradas. Elas voltam a valer se a foto do produto for enviada de novo.`,
     );
     expect(missingProductText([choice('118789', 'ean')])).toBe(
-      `1 escolha gravada ficou de fora do CSV: ${NO_PRODUCT} (118789). O XML a lista entre as escolhas ignoradas. Ela volta a valer se a foto do produto for enviada de novo.`,
+      `1 escolha gravada ficou de fora do CSV: ${NO_PRODUCT} (118789). O XML e o PDF a listam entre as escolhas ignoradas. Ela volta a valer se a foto do produto for enviada de novo.`,
     );
   });
 
@@ -68,7 +68,7 @@ describe('textos da exportação', () => {
 
     expect(emptySessionText(withPhotos(0, []))).toBe('Nenhuma foto nesta sessão.');
     expect(emptySessionText(withPhotos(2, []))).toBe(
-      'Nenhum produto nesta sessão. O XML ainda leva as fotos e os textos rejeitados.',
+      'Nenhum produto nesta sessão. O XML e o PDF ainda levam as fotos e os textos rejeitados.',
     );
     expect(emptySessionText(withPhotos(2, [summaryProductOf('A')]))).toBeNull();
   });

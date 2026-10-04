@@ -18,10 +18,11 @@ Em desenvolvimento inicial.
 - Divergência de nome, preço, EAN ou NCM no mesmo código é resolvida no Detalhe, campo a campo, antes da exportação: cada variante mostra quantos exemplares a carregam e quais, a escolha fica gravada na sessão e pode ser desfeita, e a quantidade não muda.
 - Escolha gravada que deixou de valer aparece no Detalhe com o motivo; a do campo que deixou de divergir pode ser descartada.
 - Textos fora do formato e fotos que não abrem ficam num diálogo aberto pela coluna Entrada, com a foto e o motivo; o texto rejeitado aparece cortado em 120 caracteres.
-- Exportação pelo botão `Exportar` do topo, num diálogo, com os arquivos gerados no próprio aparelho: o CSV do resumo por produto, o CSV dos exemplares e o XML do relatório completo, cada um no próprio botão, com o nome `inventario-AAAA-MM-DD-HHMM.<ext>` na data e hora locais da geração (o dos exemplares com `-exemplares` no fim).
+- Exportação pelo botão `Exportar` do topo, num diálogo, com os arquivos gerados no próprio aparelho: o CSV do resumo por produto, o CSV dos exemplares, o XML do relatório completo e o PDF para leitura, cada um no próprio botão, com o nome `inventario-AAAA-MM-DD-HHMM.<ext>` na data e hora locais da geração (o dos exemplares com `-exemplares` no fim).
 - O CSV abre em planilha em português: marca UTF-8, colunas separadas por ponto e vírgula, cabeçalho em português, valores em centavos inteiros e numa coluna em reais, e o texto que a planilha leria como fórmula precedido de apóstrofo. A mesma sessão gera o mesmo arquivo, byte a byte.
 - O XML (`versao="1"`) leva, além do que está no CSV, a sessão, os totais, a hora da geração com o fuso do aparelho (`2026-10-06T17:03:48-03:00`), os conflitos resolvidos com o valor escolhido e as variantes, os textos rejeitados inteiros com o motivo, as fotos com o estado e o motivo da falha, e as escolhas gravadas que deixaram de valer. Exemplares aninhados no produto, valores só em centavos inteiros, cada motivo com o código e a frase, valor ausente fora do arquivo, fotos pelo identificador ao lado do nome. Todo texto é escapado, e o caractere que o XML 1.0 não aceita vira `U+FFFD`. A mesma sessão gera o mesmo arquivo, byte a byte.
-- Com conflito aberto a exportação fica bloqueada, com a contagem à vista e o atalho para o primeiro produto em conflito; sessão sem produto gera só o XML, e sessão sem foto não gera arquivo; escolha gravada de produto que saiu da sessão aparece como aviso no diálogo.
+- O PDF sai em páginas A4 retrato, com a helvetica do próprio leitor de PDF, sem fonte externa: o nome da sessão, a data e a hora da geração com o fuso (`06/10/2026 às 17:03:48 (UTC-03:00)`), os totais, o resumo por produto, os conflitos resolvidos com o valor escolhido e as variantes, os exemplares, os textos rejeitados com o motivo, as fotos com o estado e o motivo da falha, e as escolhas gravadas que deixaram de valer. Valores em reais (`R$ 1.234,56`), valor ausente como travessão com o motivo escrito abaixo da tabela, nome e texto LF1 cortados com reticências na largura da coluna, cabeçalho das tabelas repetido em cada página e rodapé com o nome da sessão e `Página N de M`. Caractere que a fonte não escreve (emoji, ideograma, caractere de controle) sai como `?`, e uma nota no fim diz quantos foram trocados. O motor de PDF é baixado só na primeira exportação em PDF, a tela continua respondendo enquanto as páginas são geradas, e a mesma sessão gera o mesmo arquivo, byte a byte.
+- Com conflito aberto a exportação fica bloqueada, com a contagem à vista e o atalho para o primeiro produto em conflito; sessão sem produto gera só o XML e o PDF, e sessão sem foto não gera arquivo; escolha gravada de produto que saiu da sessão aparece como aviso no diálogo.
 - Sessões de inventário guardadas no IndexedDB, abertas, criadas, renomeadas e apagadas num diálogo, com o nome padrão de data e hora. Ao recarregar, volta a última sessão aberta no aparelho. As fotos não são guardadas.
 - Fotos da sessão listadas com os textos lidos; remover uma foto tira também os textos dela, e os totais se refazem na hora.
 - PWA instalável e utilizável offline.
@@ -59,6 +60,7 @@ LF1|118789|CANTINHO CAFE RUBI|85990|||c1
 - Dexie 4 sobre o IndexedDB, com as sessões, as fotos processadas, as leituras e as resoluções de conflito.
 - Zustand 5 no estado das sessões.
 - lucide-react nos ícones da interface, importados um a um.
+- jsPDF 4.2.1 (versão fixa) no PDF exportado, carregado só na primeira exportação em PDF, com os módulos de captura de tela e de conversão de SVG fora do build.
 - zxing-wasm 3 na leitura dos QR Codes, carregado só na primeira foto, com o binário `zxing_reader.wasm` servido pela própria aplicação, em `public/zxing/`.
 - bwip-js nas imagens de teste com QR Codes `LF1`, geradas por `npm run fixtures:qr`.
 - Vitest com jsdom, e fake-indexeddb nos testes do banco local.
@@ -166,12 +168,13 @@ scannable-label-inventory-aggregator/
         detailText.js             textos da coluna e do diálogo
         detailText.test.js
       export/
-        ExportDialog.jsx          diálogo de exportação: bloqueio, avisos e as seções CSV e XML
+        ExportDialog.jsx          diálogo de exportação: bloqueio, avisos e as seções CSV, XML e PDF, com o andamento do PDF
         ExportDialog.test.jsx
         FileRow.jsx               linha de arquivo do diálogo, com o botão de baixar
         FileRow.test.jsx
-        useReportExport.js        sequência da exportação, uma por vez, com o instante no nome do arquivo e o fuso no XML
+        useReportExport.js        sequência da exportação, uma por vez, com o instante no nome do arquivo e o fuso no XML e no PDF
         useReportExport.test.jsx
+        useReportExport.engine.test.jsx  falha na carga do motor de PDF
         exportText.js             frases do bloqueio, do aviso e da confirmação
         exportText.test.js
       sessions/
@@ -246,6 +249,15 @@ scannable-label-inventory-aggregator/
         exportFileName.test.js
         exportTimestamp.js        hora da geração com o deslocamento do fuso
         exportTimestamp.test.js
+        reportDocument.js         relatório em páginas A4 para o PDF, com as seções, os valores em reais e a data de criação
+        reportDocument.test.js
+        reportDocument.pages.test.js
+        reportColumns.js          colunas das tabelas do PDF, em milímetro
+        reportColumns.test.js
+        reportLayout.js           paginação: cursor, títulos, tabelas com o cabeçalho repetido e rodapé
+        reportLayout.test.js
+        reportText.js             caracteres e larguras da helvetica, corte com reticências e quebra em linhas
+        reportText.test.js
     storage/
       indexed-db.js               banco StockVisionDB, tabelas e índices
       indexed-db.test.js
@@ -297,11 +309,15 @@ scannable-label-inventory-aggregator/
       currency.test.js
       download.js                 download do arquivo gerado na página
       download.test.js
+      pdfEngine.js                biblioteca de PDF, carregada sob demanda
+      pdf.js                      escrita do PDF a partir da descrição das páginas, cedendo a tela entre elas
+      pdf.test.js
     test-fixtures/
       qrFixtures.js               textos das imagens de teste
       readPngFixture.js           leitura dos PNGs de teste na suíte
       reactRoot.js                montagem dos componentes na suíte
       readingFixtures.js          leituras, fontes e linhas de produto sintéticas para os testes
+      pdfBytes.js                 leitura dos bytes do PDF gerado, só para os testes
       qr-1.png, qr-4.png, qr-8.png
     styles/
       global.css      faces de fonte e variáveis de densidade

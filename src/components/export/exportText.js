@@ -27,15 +27,15 @@ export function missingProductChoicesOf(report) {
 
 /**
  * Aviso das escolhas sem produto, com a contagem, o motivo do relatorio e os
- * codigos sem repeticao, na ordem em que vieram. O CSV nao as leva; o XML as
- * lista entre as escolhas ignoradas.
+ * codigos sem repeticao, na ordem em que vieram. O CSV nao as leva; o XML e o
+ * PDF as listam entre as escolhas ignoradas.
  */
 export function missingProductText(choices) {
   const codes = [...new Set(choices.map((choice) => choice.systemCode))].join(', ');
   const count = countLabel(choices.length, 'escolha gravada', 'escolhas gravadas');
   const single = choices.length === 1;
   const verb = single ? 'ficou' : 'ficaram';
-  const listed = single ? 'O XML a lista' : 'O XML as lista';
+  const listed = single ? 'O XML e o PDF a listam' : 'O XML e o PDF as listam';
   const returns = single ? 'Ela volta' : 'Elas voltam';
 
   return `${count} ${verb} de fora do CSV: ${choices[0].message} (${codes}). ${listed} entre as escolhas ignoradas. ${returns} a valer se a foto do produto for enviada de novo.`;
@@ -43,8 +43,8 @@ export function missingProductText(choices) {
 
 /**
  * Por que a sessao gera menos arquivos: sem foto, nenhum; com foto e sem
- * produto, so o XML, que leva as fotos e os textos rejeitados. `null` quando
- * nada falta.
+ * produto, so o XML e o PDF, que levam as fotos e os textos rejeitados. `null`
+ * quando nada falta.
  */
 export function emptySessionText(report) {
   if (report.header.sourceCount === 0) {
@@ -52,7 +52,7 @@ export function emptySessionText(report) {
   }
 
   if (report.products.length === 0) {
-    return 'Nenhum produto nesta sessão. O XML ainda leva as fotos e os textos rejeitados.';
+    return 'Nenhum produto nesta sessão. O XML e o PDF ainda levam as fotos e os textos rejeitados.';
   }
 
   return null;
@@ -61,3 +61,6 @@ export function emptySessionText(report) {
 export function doneText(fileName) {
   return `Arquivo gerado: ${fileName}`;
 }
+
+/** Andamento do arquivo que demora a sair, no botao e na regiao de estado. */
+export const PDF_RUNNING_TEXT = 'Gerando PDF…';

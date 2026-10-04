@@ -6,6 +6,7 @@ import ModalShell from '../ui/ModalShell.jsx';
 
 import FileRow from './FileRow.jsx';
 import {
+  PDF_RUNNING_TEXT,
   blockerText,
   doneText,
   emptySessionText,
@@ -13,7 +14,13 @@ import {
   missingProductChoicesOf,
   missingProductText,
 } from './exportText.js';
-import { CSV_FILES, EXPORT_STATUS, XML_FILE, useReportExport } from './useReportExport.js';
+import {
+  CSV_FILES,
+  EXPORT_STATUS,
+  PDF_FILE,
+  XML_FILE,
+  useReportExport,
+} from './useReportExport.js';
 
 /**
  * Exportacao do relatorio da sessao aberta, gerada no aparelho.
@@ -23,24 +30,30 @@ import { CSV_FILES, EXPORT_STATUS, XML_FILE, useReportExport } from './useReport
  * baixa dois arquivos de uma vez esbarra na permissao de downloads multiplos
  * do navegador.
  *
- * O XML e um arquivo so, com o relatorio inteiro, para outro sistema ler.
+ * O XML e um arquivo so, com o relatorio inteiro, para outro sistema ler. O PDF
+ * e o relatorio em paginas A4, para ler e arquivar.
  *
  * Com conflito aberto os arquivos ficam desligados, com a frase do bloqueio e
  * a contagem; `Revisar conflitos` leva ao primeiro produto que pede decisao
  * (`onReviewConflicts`, que fecha o dialogo). Sessao sem produto nao gera CSV,
- * que sairia so com o cabecalho, mas gera o XML, que leva as fotos e os textos
- * rejeitados; sessao sem foto nao gera nada.
+ * que sairia so com o cabecalho, mas gera o XML e o PDF, que levam as fotos e
+ * os textos rejeitados; sessao sem foto nao gera nada.
  *
  * Escolha gravada de produto que sumiu das leituras nao aparece em nenhuma
  * outra tela; aqui ela vira aviso, sem bloquear, porque nao muda o resumo nem
- * os exemplares. O XML a leva entre as escolhas ignoradas.
+ * os exemplares. O XML e o PDF a levam entre as escolhas ignoradas.
  *
  * Depois do download o dialogo continua aberto, com o nome do arquivo gerado,
  * para o operador baixar o outro arquivo se quiser. O foco fica no botao
  * tocado. A falha aparece junto dos botoes.
  *
- * `now` e `download` seguem para `useReportExport`; sem eles valem o relogio e
- * o download do navegador.
+ * O PDF leva um instante para sair. Enquanto ele e gerado, os outros botoes
+ * ficam desligados e o do PDF diz `Gerando PDF…`, marcado como indisponivel sem
+ * ser desligado: um botao desligado perde o foco, e o foco fica onde o
+ * operador tocou.
+ *
+ * `now`, `download` e `renderPdf` seguem para `useReportExport`; sem eles
+ * valem o relogio, o download do navegador e a escrita do PDF.
  */
 
 const BLOCKER_ID = 'export-blocker';
@@ -57,8 +70,19 @@ function SectionTitle({ id, title, description }) {
   );
 }
 
-export default function ExportDialog({ report, onClose, onReviewConflicts, now, download }) {
-  const { status, fileName, error, exportFile } = useReportExport({ now, download });
+export default function ExportDialog({
+  report,
+  onClose,
+  onReviewConflicts,
+  now,
+  download,
+  renderPdf,
+}) {
+  const { status, file, fileName, error, exportFile } = useReportExport({
+    now,
+    download,
+    renderPdf,
+  });
 
   const blocker = report.exportBlockers[0] ?? null;
   const emptyText = blocker ? null : emptySessionText(report);
@@ -67,8 +91,7 @@ export default function ExportDialog({ report, onClose, onReviewConflicts, now, 
   const missingChoices = missingProductChoicesOf(report);
   const reviewCode = blocker ? firstOpenConflictCode(report) : null;
   const isRunning = status === EXPORT_STATUS.RUNNING;
-  const csvDisabled = Boolean(blocker) || !hasProducts || isRunning;
-  const xmlDisabled = Boolean(blocker) || !hasPhotos || isRunning;
+  const pdfRunning = isRunning && file === PDF_FILE;
   const describedBy = (enabled) => {
     if (blocker) {
       return BLOCKER_ID;
@@ -76,8 +99,17 @@ export default function ExportDialog({ report, onClose, onReviewConflicts, now, 
 
     return enabled ? undefined : EMPTY_ID;
   };
-  const csvDescribedBy = describedBy(hasProducts);
-  const xmlDescribedBy = describedBy(hasPhotos);
+  // O botao do arquivo em andamento continua focavel; os outros desligam.
+  const lockOf = (key, enabled) => {
+    const busy = isRunning && file === key;
+
+    return {
+      disabled: Boolean(blocker) || !enabled || (isRunning && !busy),
+      'aria-disabled': busy ? 'true' : undefined,
+      'aria-describedby': describedBy(enabled),
+      onClick: () => exportFile(report, key),
+    };
+  };
 
   return (
     <ModalShell title="Exportar relatório" subtitle={report.header.sessionName} onClose={onClose}>
@@ -136,9 +168,7 @@ export default function ExportDialog({ report, onClose, onReviewConflicts, now, 
               data-baixar={CSV_FILES.SUMMARY}
               variant="primary"
               className="flex-none"
-              disabled={csvDisabled}
-              aria-describedby={csvDescribedBy}
-              onClick={() => exportFile(report, CSV_FILES.SUMMARY)}
+              {...lockOf(CSV_FILES.SUMMARY, hasProducts)}
             >
               <Download className="h-4 w-4" aria-hidden="true" />
               Baixar resumo
@@ -152,9 +182,7 @@ export default function ExportDialog({ report, onClose, onReviewConflicts, now, 
             <Button
               data-baixar={CSV_FILES.COPIES}
               className="flex-none"
-              disabled={csvDisabled}
-              aria-describedby={csvDescribedBy}
-              onClick={() => exportFile(report, CSV_FILES.COPIES)}
+              {...lockOf(CSV_FILES.COPIES, hasProducts)}
             >
               <Download className="h-4 w-4" aria-hidden="true" />
               Baixar exemplares
@@ -173,20 +201,41 @@ export default function ExportDialog({ report, onClose, onReviewConflicts, now, 
             title="Relatório completo"
             description="Sessão, totais, produtos com os exemplares e os conflitos resolvidos, textos rejeitados inteiros, fotos e escolhas ignoradas."
           >
-            <Button
-              data-baixar={XML_FILE}
-              className="flex-none"
-              disabled={xmlDisabled}
-              aria-describedby={xmlDescribedBy}
-              onClick={() => exportFile(report, XML_FILE)}
-            >
+            <Button data-baixar={XML_FILE} className="flex-none" {...lockOf(XML_FILE, hasPhotos)}>
               <Download className="h-4 w-4" aria-hidden="true" />
               Baixar XML
             </Button>
           </FileRow>
         </section>
 
+        <section aria-labelledby="export-pdf-title" data-formato="pdf" className="space-y-3">
+          <SectionTitle
+            id="export-pdf-title"
+            title="PDF"
+            description="Para ler e arquivar: páginas A4 com os valores em reais e a hora da geração com o fuso."
+          />
+
+          <FileRow
+            title="Relatório para leitura"
+            description="Totais, resumo por produto, conflitos resolvidos, exemplares, textos rejeitados, fotos e escolhas ignoradas."
+          >
+            <Button
+              data-baixar={PDF_FILE}
+              className="flex-none aria-disabled:cursor-wait aria-disabled:opacity-60"
+              {...lockOf(PDF_FILE, hasPhotos)}
+            >
+              <Download className="h-4 w-4" aria-hidden="true" />
+              {pdfRunning ? PDF_RUNNING_TEXT : 'Baixar PDF'}
+            </Button>
+          </FileRow>
+        </section>
+
         <div role="status" aria-live="polite">
+          {pdfRunning ? (
+            <p data-gerando="" className="text-neutro-tintaMedia">
+              {PDF_RUNNING_TEXT}
+            </p>
+          ) : null}
           {status === EXPORT_STATUS.DONE && fileName ? (
             <p
               data-arquivo-gerado=""

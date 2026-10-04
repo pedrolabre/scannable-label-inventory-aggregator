@@ -106,3 +106,15 @@ export function summaryProductOf(systemCode, overrides = {}) {
     ...overrides,
   };
 }
+
+/**
+ * Centavos escritos em reais (`R$ 1.234,56`) para os testes do dominio, que
+ * recebem o formatador por parametro e nao importam o da tela. Os digitos saem
+ * do proprio inteiro, sem divisao em ponto flutuante.
+ */
+export function formatTestCentavos(centavos) {
+  const digits = String(centavos).padStart(3, '0');
+  const reais = digits.slice(0, -2).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+  return `R$ ${reais},${digits.slice(-2)}`;
+}

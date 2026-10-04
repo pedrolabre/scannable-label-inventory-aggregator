@@ -44,6 +44,18 @@ function downloadButton(file) {
   return dialog().querySelector(`[data-baixar="${file}"]`);
 }
 
+/** Promessa cumprida ou recusada de fora, para o teste ver o meio da geracao. */
+function deferred() {
+  let resolve;
+  let reject;
+  const promise = new Promise((done, fail) => {
+    resolve = done;
+    reject = fail;
+  });
+
+  return { promise, resolve, reject };
+}
+
 async function render(report, props = {}) {
   await view.render(
     <ExportDialog
@@ -52,12 +64,13 @@ async function render(report, props = {}) {
       onReviewConflicts={props.onReviewConflicts ?? (() => {})}
       now={() => INSTANT}
       download={props.download ?? vi.fn()}
+      renderPdf={props.renderPdf ?? (async () => new Uint8Array([37, 80, 68, 70]))}
     />,
   );
 }
 
 describe('ExportDialog', () => {
-  it('mostra o CSV com os dois arquivos, o XML, o nome da sessão como texto e fecha pelo Esc', async () => {
+  it('mostra o CSV com os dois arquivos, o XML, o PDF, o nome da sessão como texto e fecha pelo Esc', async () => {
     const onClose = vi.fn();
 
     await render(reportOf({ name: '<b>Loja</b> centro' }), { onClose });
@@ -75,9 +88,15 @@ describe('ExportDialog', () => {
     expect(downloadButton('xml').disabled).toBe(false);
     expect(downloadButton('xml').className).toContain('h-controle');
     expect(downloadButton('xml').className).toContain('bg-neutro-branco');
+    expect(dialog().querySelector('[data-formato="pdf"] h3').textContent).toBe('PDF');
+    expect(downloadButton('pdf').textContent).toBe('Baixar PDF');
+    expect(downloadButton('pdf').disabled).toBe(false);
+    expect(downloadButton('pdf').hasAttribute('aria-disabled')).toBe(false);
+    expect(downloadButton('pdf').className).toContain('h-controle');
+    expect(downloadButton('pdf').className).toContain('bg-neutro-branco');
     expect(
       [...dialog().querySelectorAll('[data-formato]')].map((node) => node.dataset.formato),
-    ).toEqual(['csv', 'xml']);
+    ).toEqual(['csv', 'xml', 'pdf']);
     expect(dialog().querySelector('[data-bloqueio-exportacao]')).toBeNull();
 
     await view.press('Escape');
@@ -96,7 +115,7 @@ describe('ExportDialog', () => {
     expect(blocker.textContent).toContain('Exportação bloqueada: 1 conflito aberto.');
     expect(blocker.className).toContain('amarelo');
 
-    for (const file of ['resumo', 'exemplares', 'xml']) {
+    for (const file of ['resumo', 'exemplares', 'xml', 'pdf']) {
       expect(downloadButton(file).disabled).toBe(true);
       expect(downloadButton(file).getAttribute('aria-describedby')).toBe('export-blocker');
     }
@@ -119,9 +138,10 @@ describe('ExportDialog', () => {
     expect(dialog().querySelector('[data-bloqueio-exportacao]')).toBeNull();
     expect(downloadButton('resumo').disabled).toBe(false);
     expect(downloadButton('xml').disabled).toBe(false);
+    expect(downloadButton('pdf').disabled).toBe(false);
   });
 
-  it('desliga o CSV e libera o XML na sessão com foto e sem produto', async () => {
+  it('desliga o CSV e libera o XML e o PDF na sessão com foto e sem produto', async () => {
     const download = vi.fn();
 
     await render(reportOf({ texts: [] }), { download });
@@ -130,18 +150,22 @@ describe('ExportDialog', () => {
 
     expect(empty.getAttribute('data-sessao-vazia')).toBe('sem-produto');
     expect(empty.textContent).toBe(
-      'Nenhum produto nesta sessão. O XML ainda leva as fotos e os textos rejeitados.',
+      'Nenhum produto nesta sessão. O XML e o PDF ainda levam as fotos e os textos rejeitados.',
     );
     expect(downloadButton('resumo').disabled).toBe(true);
     expect(downloadButton('exemplares').getAttribute('aria-describedby')).toBe('export-empty');
     expect(downloadButton('xml').disabled).toBe(false);
     expect(downloadButton('xml').hasAttribute('aria-describedby')).toBe(false);
+    expect(downloadButton('pdf').disabled).toBe(false);
+    expect(downloadButton('pdf').hasAttribute('aria-describedby')).toBe(false);
     expect(dialog().querySelector('[data-revisar-conflitos]')).toBeNull();
 
     await view.click(downloadButton('xml'));
+    await view.click(downloadButton('pdf'));
 
-    expect(download).toHaveBeenCalledTimes(1);
+    expect(download).toHaveBeenCalledTimes(2);
     expect(download.mock.calls[0][1]).toMatch(/^inventario-\d{4}-\d{2}-\d{2}-\d{4}\.xml$/);
+    expect(download.mock.calls[1][1]).toMatch(/^inventario-\d{4}-\d{2}-\d{2}-\d{4}\.pdf$/);
   });
 
   it('desliga todos os arquivos na sessão sem foto', async () => {
@@ -152,7 +176,7 @@ describe('ExportDialog', () => {
     expect(empty.getAttribute('data-sessao-vazia')).toBe('sem-foto');
     expect(empty.textContent).toBe('Nenhuma foto nesta sessão.');
 
-    for (const file of ['resumo', 'exemplares', 'xml']) {
+    for (const file of ['resumo', 'exemplares', 'xml', 'pdf']) {
       expect(downloadButton(file).disabled).toBe(true);
       expect(downloadButton(file).getAttribute('aria-describedby')).toBe('export-empty');
     }
@@ -168,11 +192,12 @@ describe('ExportDialog', () => {
     const note = dialog().querySelector('[data-escolhas-sem-produto]');
 
     expect(note.textContent).toContain('1 escolha gravada ficou de fora do CSV');
-    expect(note.textContent).toContain('O XML a lista entre as escolhas ignoradas.');
+    expect(note.textContent).toContain('O XML e o PDF a listam entre as escolhas ignoradas.');
     expect(note.textContent).toContain('(Z-9)');
     expect(note.className).toContain('amarelo');
     expect(downloadButton('resumo').disabled).toBe(false);
     expect(downloadButton('xml').disabled).toBe(false);
+    expect(downloadButton('pdf').disabled).toBe(false);
   });
 
   it('confirma o arquivo gerado em verde e mantém o foco no botão tocado', async () => {
@@ -215,5 +240,63 @@ describe('ExportDialog', () => {
       'Não foi possível gerar o arquivo. Tente de novo.',
     );
     expect(dialog().querySelector('[data-arquivo-gerado]')).toBeNull();
+  });
+
+  it('trava os botões durante a geração do PDF, com o andamento escrito e o foco no botão tocado', async () => {
+    const pending = deferred();
+    const download = vi.fn();
+    const renderPdf = vi.fn(() => pending.promise);
+
+    await render(reportOf(), { download, renderPdf });
+    await view.focus(downloadButton('pdf'));
+    await view.click(downloadButton('pdf'));
+
+    const pdf = downloadButton('pdf');
+
+    expect(renderPdf).toHaveBeenCalledTimes(1);
+    expect(pdf.textContent).toBe('Gerando PDF…');
+    expect(pdf.disabled).toBe(false);
+    expect(pdf.getAttribute('aria-disabled')).toBe('true');
+    expect(pdf.className).toContain('aria-disabled:opacity-60');
+    expect(document.activeElement).toBe(pdf);
+    expect(dialog().querySelector('[data-gerando]').textContent).toBe('Gerando PDF…');
+    expect(dialog().querySelector('[data-gerando]').parentElement.getAttribute('role')).toBe(
+      'status',
+    );
+
+    for (const file of ['resumo', 'exemplares', 'xml']) {
+      expect(downloadButton(file).disabled).toBe(true);
+    }
+
+    // Um segundo toque no botao ocupado nao gera outro arquivo.
+    await view.click(pdf);
+    expect(renderPdf).toHaveBeenCalledTimes(1);
+
+    await view.update(() => pending.resolve(new Uint8Array([37, 80, 68, 70])));
+
+    expect(download).toHaveBeenCalledTimes(1);
+    expect(download.mock.calls[0][0].type).toBe('application/pdf');
+    expect(downloadButton('pdf').textContent).toBe('Baixar PDF');
+    expect(downloadButton('pdf').hasAttribute('aria-disabled')).toBe(false);
+    expect(downloadButton('resumo').disabled).toBe(false);
+    expect(dialog().querySelector('[data-gerando]')).toBeNull();
+    expect(dialog().querySelector('[data-arquivo-gerado]').textContent).toMatch(
+      /^Arquivo gerado: inventario-\d{4}-\d{2}-\d{2}-\d{4}\.pdf$/,
+    );
+    expect(document.activeElement).toBe(downloadButton('pdf'));
+  });
+
+  it('mostra a falha do PDF com a frase e libera os botões', async () => {
+    const pending = deferred();
+
+    await render(reportOf(), { renderPdf: () => pending.promise });
+    await view.click(downloadButton('pdf'));
+    await view.update(() => pending.reject(new Error('motor indisponível')));
+
+    expect(dialog().querySelector('[role="alert"]').textContent).toBe(
+      'Não foi possível gerar o arquivo. Tente de novo.',
+    );
+    expect(downloadButton('pdf').textContent).toBe('Baixar PDF');
+    expect(downloadButton('resumo').disabled).toBe(false);
   });
 });

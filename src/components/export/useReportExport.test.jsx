@@ -1,15 +1,24 @@
 // @vitest-environment jsdom
 
+import { act } from 'react';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { buildCopiesCsv, buildSummaryCsv } from '../../domain/services/csvExport.js';
 import { buildInventoryReport } from '../../domain/services/inventoryReport.js';
+import { describeReportDocument } from '../../domain/services/reportDocument.js';
 import { buildInventoryXml } from '../../domain/services/xmlExport.js';
 import { formatCentavosAsBRL } from '../../lib/currency.js';
+import { renderReportDocument } from '../../lib/pdf.js';
 import { lf1Text, readingOf, sourceOf } from '../../test-fixtures/readingFixtures.js';
 import { useReactRoot } from '../../test-fixtures/reactRoot.js';
 
-import { CSV_FILES, EXPORT_STATUS, XML_FILE, useReportExport } from './useReportExport.js';
+import {
+  CSV_FILES,
+  EXPORT_STATUS,
+  PDF_FILE,
+  XML_FILE,
+  useReportExport,
+} from './useReportExport.js';
 
 const view = useReactRoot();
 
@@ -41,8 +50,8 @@ const report = buildInventoryReport({
 
 let latest = null;
 
-function Harness({ now, download }) {
-  latest = useReportExport({ now, download });
+function Harness({ now, download, renderPdf }) {
+  latest = useReportExport({ now, download, renderPdf });
 
   return <p data-status={latest.status}>{latest.fileName}</p>;
 }
@@ -155,5 +164,93 @@ describe('useReportExport', () => {
     expect(download).toHaveBeenCalledTimes(2);
     expect(latest.status).toBe(EXPORT_STATUS.DONE);
     expect(latest.error).toBeNull();
+  });
+
+  it('baixa o PDF com o nome .pdf, o tipo e os bytes da descrição com a hora local', async () => {
+    const download = vi.fn();
+
+    await view.render(<Harness now={() => INSTANT} download={download} />);
+    await act(async () => {
+      await latest.exportFile(report, PDF_FILE);
+    });
+
+    const [blob, fileName] = download.mock.calls[0];
+    const stamped = { ...report, header: { ...report.header, generatedAt: INSTANT.toISOString() } };
+    const description = describeReportDocument(stamped, {
+      offsetMinutes: -180,
+      formatCentavos: formatCentavosAsBRL,
+    });
+    const expected = await renderReportDocument(description);
+
+    expect(fileName).toBe('inventario-2026-10-06-1603.pdf');
+    expect(blob.type).toBe('application/pdf');
+    expect(await readBlob(blob)).toEqual([...expected]);
+    expect(description.subject).toBe('Inventário gerado em 06/10/2026 às 16:03:48 (UTC-03:00)');
+    expect(latest.status).toBe(EXPORT_STATUS.DONE);
+    expect(latest.fileName).toBe('inventario-2026-10-06-1603.pdf');
+  });
+
+  it('fica em andamento com o PDF até ele sair, uma exportação por vez', async () => {
+    let finish;
+    const download = vi.fn();
+    const renderPdf = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+
+    await view.render(<Harness now={() => INSTANT} download={download} renderPdf={renderPdf} />);
+
+    let pending;
+
+    await view.update(() => {
+      pending = latest.exportFile(report, PDF_FILE);
+    });
+
+    expect(latest.status).toBe(EXPORT_STATUS.RUNNING);
+    expect(latest.file).toBe(PDF_FILE);
+
+    await view.update(() => latest.exportFile(report, CSV_FILES.SUMMARY));
+
+    expect(download).not.toHaveBeenCalled();
+    expect(renderPdf.mock.calls[0][0].pages.length).toBeGreaterThan(0);
+
+    await view.update(async () => {
+      finish(new Uint8Array([37, 80, 68, 70]));
+      await pending;
+    });
+
+    expect(download).toHaveBeenCalledTimes(1);
+    expect(latest.status).toBe(EXPORT_STATUS.DONE);
+    expect(latest.file).toBe(PDF_FILE);
+  });
+
+  it('mostra a falha quando a geração do PDF falha, e libera a tentativa seguinte', async () => {
+    const download = vi.fn();
+    const renderPdf = vi.fn(() => Promise.reject(new Error('motor indisponível')));
+
+    await view.render(<Harness now={() => INSTANT} download={download} renderPdf={renderPdf} />);
+    await view.update(() => latest.exportFile(report, PDF_FILE));
+
+    expect(download).not.toHaveBeenCalled();
+    expect(latest.status).toBe(EXPORT_STATUS.FAILED);
+    expect(latest.error).toBe('Não foi possível gerar o arquivo. Tente de novo.');
+
+    renderPdf.mockResolvedValue(new Uint8Array([37]));
+    await view.update(() => latest.exportFile(report, PDF_FILE));
+
+    expect(download).toHaveBeenCalledTimes(1);
+    expect(latest.status).toBe(EXPORT_STATUS.DONE);
+  });
+
+  it('mostra a falha quando o relatório não pode virar PDF', async () => {
+    const renderPdf = vi.fn();
+
+    await view.render(<Harness now={() => INSTANT} download={vi.fn()} renderPdf={renderPdf} />);
+    await view.update(() => latest.exportFile({ ...report, exportable: false }, PDF_FILE));
+
+    expect(renderPdf).not.toHaveBeenCalled();
+    expect(latest.status).toBe(EXPORT_STATUS.FAILED);
   });
 });

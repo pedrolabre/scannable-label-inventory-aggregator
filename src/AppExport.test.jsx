@@ -9,6 +9,7 @@ import App from './App.jsx';
 import { getAppDatabase } from './storage/indexed-db.js';
 import { createSourceWithReadings } from './storage/sourceRepository.js';
 import { useSessionStore } from './store/useSessionStore.js';
+import { readInfo, readPageTexts } from './test-fixtures/pdfBytes.js';
 import { qrFixtureReadings } from './test-fixtures/readingFixtures.js';
 import { useReactRoot } from './test-fixtures/reactRoot.js';
 
@@ -17,7 +18,7 @@ import { useReactRoot } from './test-fixtures/reactRoot.js';
  * gatilho do cabecalho, o bloqueio com o `118789` de `qr-4.png` e `qr-8.png`
  * em conflito de EAN e NCM, a ida ao produto, a resolucao no Detalhe e o
  * download interceptado, com o arquivo lido de volta. O fuso fica fixo, para a
- * hora do XML e a do nome do arquivo nao dependerem da maquina.
+ * hora do XML, a do PDF e a do nome do arquivo nao dependerem da maquina.
  */
 
 const initialSession = useSessionStore.getState();
@@ -132,6 +133,15 @@ function variant(field, index) {
   return detail().querySelector(`[data-campo="${field}"] [data-variante="${index}"]`);
 }
 
+function readBytes(blob) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+
+    reader.onload = () => resolve(new Uint8Array(reader.result));
+    reader.readAsArrayBuffer(blob);
+  });
+}
+
 function readText(blob) {
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -149,7 +159,7 @@ describe('App com a exportação', () => {
     expect(trigger().disabled).toBe(true);
   });
 
-  it('bloqueia com conflito aberto, leva ao produto, libera depois da escolha e baixa o CSV e o XML', async () => {
+  it('bloqueia com conflito aberto, leva ao produto, libera depois da escolha e baixa o CSV, o XML e o PDF', async () => {
     await openSessionWithConflict();
     await view.render(<App />);
 
@@ -269,5 +279,45 @@ describe('App com a exportação', () => {
     expect(xmlDocument.querySelectorAll('produtos > produto')).toHaveLength(10);
     expect(xmlDocument.querySelectorAll('rejeitados > rejeitado')).toHaveLength(0);
     expect(xmlDocument.querySelectorAll('fotos > foto')).toHaveLength(2);
+
+    const pdfButton = dialog.querySelector('[data-baixar="pdf"]');
+
+    await view.focus(pdfButton);
+    await view.click(pdfButton);
+    await waitFor(() => downloads.length === 4);
+    await waitFor(() =>
+      dialog.querySelector('[data-arquivo-gerado]')?.textContent.endsWith('.pdf'),
+    );
+
+    expect(downloads[3].fileName).toMatch(/^inventario-\d{4}-\d{2}-\d{2}-\d{4}\.pdf$/);
+    expect(downloads[3].blob.type).toBe('application/pdf');
+    expect(revoked).toEqual(downloads.map((entry) => entry.href));
+    expect(dialog.querySelector('[data-arquivo-gerado]').textContent).toBe(
+      `Arquivo gerado: ${downloads[3].fileName}`,
+    );
+    expect(document.activeElement).toBe(pdfButton);
+
+    const pdf = await readBytes(downloads[3].blob);
+    const pdfTexts = readPageTexts(pdf).flatMap((page) => page.map((run) => run.text));
+    const [, pdfYear, pdfMonth, pdfDay, pdfTime] = downloads[3].fileName.match(
+      /^inventario-(\d{4})-(\d{2})-(\d{2})-(\d{4})/,
+    );
+
+    expect(String.fromCharCode(...pdf.slice(0, 5))).toBe('%PDF-');
+    expect(pdfTexts[0]).toBe('Relatório de inventário');
+    expect(pdfTexts.find((text) => text.startsWith('Gerado em ')).slice(0, 29)).toBe(
+      `Gerado em ${pdfDay}/${pdfMonth}/${pdfYear} às ${pdfTime.slice(0, 2)}:${pdfTime.slice(2)}`,
+    );
+    expect(pdfTexts.find((text) => text.startsWith('Gerado em ')).endsWith('(UTC-03:00)')).toBe(
+      true,
+    );
+    expect(pdfTexts).toContain('R$ 1.795,78');
+    expect(pdfTexts).toContain('CANTINHO CAFE RUBI');
+    expect(pdfTexts).toContain('AÇÚCAR CRISTAL 1KG');
+    expect(pdfTexts).toContain('Conflitos resolvidos (2)');
+    expect(pdfTexts).toContain('Exemplares (11)');
+    expect(pdfTexts).toContain('Nenhum texto rejeitado.');
+    expect(readInfo(pdf).Creator).toBe('StockVision');
+    expect(readInfo(pdf).CreationDate).toMatch(/^D:\d{14}-03'00'$/);
   });
 });
