@@ -66,7 +66,7 @@ describe('ProductSummaryTable', () => {
     expect(rows()[0].querySelector('button').hasAttribute('aria-describedby')).toBe(false);
   });
 
-  it('alterna as faixas em neutro.papel e marca o selecionado sem depender só da cor', async () => {
+  it('alterna as faixas em neutro.faixa e marca o selecionado sem depender só da cor', async () => {
     await view.render(
       <ProductSummaryTable products={PRODUCTS} selectedCode="DEMO-11" onSelect={() => {}} />,
     );
@@ -74,8 +74,8 @@ describe('ProductSummaryTable', () => {
     const [first, second, selected] = rows();
 
     expect(view.container.querySelector('table').className).toContain('bg-neutro-branco');
-    expect(first.className).not.toContain('bg-neutro-papel');
-    expect(second.className).toContain('bg-neutro-papel');
+    expect(first.className).not.toContain('bg-neutro-faixa');
+    expect(second.className).toContain('bg-neutro-faixa');
     expect(selected.className).toContain('bg-marca-vermelhoTenue');
     expect(selected.querySelector('button').getAttribute('aria-current')).toBe('true');
     expect(selected.querySelector('button').className).toContain('font-bold');
@@ -113,5 +113,31 @@ describe('ProductSummaryTable', () => {
     expect(view.container.querySelector('img')).toBeNull();
     expect(view.container.querySelector('tbody b')).toBeNull();
     expect(cells(rows()[0]).slice(0, 2)).toEqual(['<b>X</b>', '<img src=x onerror=alert(1)>']);
+  });
+  it('é uma parada de Tab na tabela, no selecionado, e as setas só movem o foco', async () => {
+    const onSelect = vi.fn();
+
+    await view.render(
+      <ProductSummaryTable products={PRODUCTS} selectedCode="DEMO-10" onSelect={onSelect} />,
+    );
+
+    const buttons = () => rows().map((row) => row.querySelector('button'));
+
+    expect(buttons().map((button) => button.tabIndex)).toEqual([-1, 0, -1]);
+
+    await view.focus(buttons()[1]);
+    await view.press('ArrowDown');
+
+    expect(document.activeElement).toBe(buttons()[2]);
+
+    await view.press('Home');
+
+    expect(document.activeElement).toBe(buttons()[0]);
+    expect(buttons().map((button) => button.tabIndex)).toEqual([0, -1, -1]);
+    expect(onSelect).not.toHaveBeenCalled();
+
+    await view.click(document.activeElement);
+
+    expect(onSelect).toHaveBeenCalledWith('DEMO-2');
   });
 });

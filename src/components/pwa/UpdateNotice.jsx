@@ -1,7 +1,6 @@
 import { RefreshCw } from 'lucide-react';
 import { useSyncExternalStore } from 'react';
 
-import { APP_NAME } from '../../lib/app-meta.js';
 import { applyPendingUpdate, getUpdateSnapshot, subscribeToUpdate } from '../../pwa/updateState.js';
 import { CAPTURE_ITEM_STATUSES } from '../../store/captureItem.js';
 import { useCaptureStore } from '../../store/useCaptureStore.js';
@@ -45,14 +44,16 @@ export function updateDetailOf({ waiting, failed }) {
       : `As ${failed} fotos com erro na fila saem da lista ao atualizar e precisam ser enviadas de novo.`;
   }
 
-  return 'A sessão e as fotos gravadas continuam depois de atualizar.';
+  return 'A sessão e as fotos gravadas continuam.';
 }
 
 /**
  * Aviso de versao nova, numa faixa entre o cabecalho e as colunas.
  *
  * A faixa entra no fluxo, sem sombra e sem flutuar sobre a tela: as colunas
- * cedem a altura dela, e a pagina continua sem rolagem. Ela nao toma o foco;
+ * cedem a altura dela, e a pagina continua sem rolagem. A frase de sempre e
+ * curta de proposito: ao lado do botao, na tela de 390 px, ela cabe em duas
+ * linhas, e a faixa toma o minimo da coluna. Ela nao toma o foco;
  * quem navega por teclado a encontra logo depois do cabecalho, e o texto e
  * anunciado pela regiao de estado, que existe sempre, vazia sem versao nova.
  *
@@ -88,9 +89,7 @@ export default function UpdateNotice() {
         >
           <RefreshCw className="h-4 w-4 flex-none text-marca-vermelho" aria-hidden="true" />
           <p className="min-w-0 flex-1 text-neutro-tintaMedia">
-            <span className="font-semibold text-neutro-tinta">
-              Versão nova do {APP_NAME} disponível.
-            </span>{' '}
+            <span className="font-semibold text-neutro-tinta">Versão nova disponível.</span>{' '}
             <span id={DETAIL_ID}>{updateDetailOf(queue)}</span>
           </p>
           <Button

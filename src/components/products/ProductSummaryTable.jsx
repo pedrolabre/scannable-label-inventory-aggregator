@@ -1,4 +1,5 @@
 import { cx } from '../../lib/cx.js';
+import { useRovingFocus } from '../ui/useRovingFocus.js';
 
 import ProductRow from './ProductRow.jsx';
 
@@ -17,13 +18,23 @@ const NUMBER_HEAD = 'text-right';
 /**
  * Tabela do resumo por produto, usada a partir de `sm:`, na ordem do
  * relatorio. A tabela fica sobre branco e as linhas pares ganham a faixa de
- * `neutro.papel`.
+ * `neutro.faixa`.
+ *
+ * A tabela e uma parada so de `Tab`, no produto selecionado ou no primeiro, e
+ * as setas para cima e para baixo andam entre os nomes, com `Home` e `End` nas
+ * pontas. As setas so movem o foco; `Enter` ou `Espaco` seleciona. Com
+ * duzentos produtos, quem vem pelo teclado passa da tabela com uma tecla.
  *
  * A largura das colunas e fixa, menos a do produto, que fica com o que sobrar:
  * a tabela nunca passa da largura da coluna e nunca rola de lado, e o nome
  * longo e o que cede, com reticencias.
  */
 export default function ProductSummaryTable({ products, selectedCode = null, onSelect }) {
+  const roving = useRovingFocus({
+    count: products.length,
+    activeIndex: products.findIndex((product) => product.systemCode === selectedCode),
+  });
+
   return (
     <table className="w-full table-fixed border-collapse bg-neutro-branco text-sm">
       <caption className="sr-only">Resumo por produto</caption>
@@ -49,7 +60,7 @@ export default function ProductSummaryTable({ products, selectedCode = null, onS
         </tr>
       </thead>
 
-      <tbody>
+      <tbody ref={roving.containerRef} onKeyDown={roving.onKeyDown}>
         {products.map((product, index) => (
           <ProductRow
             key={product.systemCode}
@@ -57,6 +68,7 @@ export default function ProductSummaryTable({ products, selectedCode = null, onS
             index={index}
             isSelected={product.systemCode === selectedCode}
             onSelect={onSelect}
+            focusProps={roving.itemProps(index)}
           />
         ))}
       </tbody>

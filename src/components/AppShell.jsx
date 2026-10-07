@@ -59,7 +59,9 @@ export function isWideScreen() {
  *
  * O primeiro elemento focavel da tela e um atalho que leva direto ao conteudo.
  * Ele fica fora da vista ate receber foco, e so quem navega por teclado o
- * encontra.
+ * encontra. O recuo e a altura vem junto com o foco: a classe que o devolve a
+ * vista zera o recuo, e sem elas o atalho apareceria colado ao texto, abaixo da
+ * altura de controle.
  *
  * O `main` recebe `tabIndex` negativo porque um destino de ancora que nao
  * aceita foco e ignorado por parte dos navegadores: o endereco muda e o foco
@@ -93,9 +95,10 @@ export default function AppShell({
       <a
         href={`#${MAIN_CONTENT_ID}`}
         className={cx(
-          'sr-only rounded border border-marca-vermelho bg-neutro-branco px-4 py-2',
+          'sr-only rounded border border-marca-vermelho bg-neutro-branco',
           'text-sm font-semibold text-marca-vermelho',
           'focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50',
+          'focus:inline-flex focus:min-h-controle focus:items-center focus:px-4',
           FOCUS_OUTLINE,
           FOCUS_OUTLINE_COLORS.brand,
         )}

@@ -1,10 +1,10 @@
 # StockVision
 
-SPA client-side que lê QR Codes de etiquetas no formato `LF1` a partir de fotos, conta os exemplares e gera o relatório de inventário. Tudo roda no navegador: sem servidor, sem conta, sem rede depois da primeira visita.
+SPA client-side que lê QR Codes de etiquetas no formato `LF1` a partir de fotos, conta os exemplares e gera o relatório de inventário. Tudo roda no navegador, sem servidor e sem conta. Depois da primeira visita a aplicação funciona sem rede; com rede, o navegador só confere, a cada abertura, se há versão nova no próprio endereço.
 
 ## Status
 
-Em desenvolvimento inicial.
+MVP funcional.
 
 ## Funcionamento
 
@@ -27,7 +27,23 @@ Em desenvolvimento inicial.
 - Fotos da sessão listadas com os textos lidos; remover uma foto tira também os textos dela, e os totais se refazem na hora.
 - Instalável como aplicativo: no Chrome do computador e do Android, pelo ícone de instalação da barra de endereço ou pelo menu; no iPhone, por `Adicionar à Tela de Início`. Abre em janela própria, com o nome e o ícone do StockVision.
 - Funciona sem rede depois da primeira visita: a primeira abertura guarda no aparelho a aplicação inteira, com o leitor de QR Code, o motor de PDF, as fontes e os ícones. Sem rede, a página abre, uma foto nova é lida e o CSV, o XML e o PDF são gerados. Com rede, a cada abertura o navegador confere se há versão nova no próprio endereço.
+- Uso completo pelo teclado: atalho `Pular para o conteúdo` no começo da página, contorno visível em todo controle, uma parada de `Tab` na tabela de produtos e em cada campo em conflito, com as setas entre as linhas e entre as variantes, `Home` e `End` nas pontas e `Enter` ou `Espaço` para escolher; diálogos com o foco preso, `Esc` fechando e o foco de volta ao botão que os abriu.
+- No celular, uma coluna por vez, escolhida pela barra de vistas do topo, com alvos de toque de 44 px; a partir de 1100 px de largura, as três colunas lado a lado numa janela sem rolagem de página.
 - Versão nova aparece numa faixa abaixo do topo, com o botão `Atualizar`; a página nunca recarrega sozinha. Enquanto houver foto da fila ainda não gravada, o botão espera e a faixa diz quantas faltam; foto com erro na fila sai da lista ao atualizar, e a faixa avisa antes.
+
+## O que o StockVision não faz
+
+- Não lê pela câmera ao vivo: a câmera entra pela foto tirada no aparelho, que segue o mesmo caminho das imagens enviadas.
+- Não lê código de barras linear nem outro símbolo além de QR Code; QR Code fora do formato `LF1` aparece entre os rejeitados, com o motivo, e não entra na contagem.
+- Não lê texto impresso, lote, validade nem a aparência do produto: só o conteúdo do QR Code conta.
+- Não consulta cadastro de produtos, não lê dados do ERP e não edita produto: os dados vêm só do símbolo.
+- Não guarda as fotos: ficam o nome, o tamanho, a data, o SHA-256, as dimensões e o que foi lido em cada uma.
+- Não tem servidor, conta, login, sincronização entre aparelhos nem uso por várias pessoas: as sessões ficam no navegador do aparelho.
+- Não se integra a ERP nem a loja virtual: a saída é o arquivo exportado em CSV, XML ou PDF.
+- Não exporta em DOCX nem em XLSX: o CSV abre direto em planilha.
+- Não cria nem imprime etiquetas.
+- Não trata a foto antes da leitura, como correção de perspectiva ou limiarização: a imagem vai como está para o leitor de QR Code.
+- Não copia nem restaura o banco local: o arquivo exportado é o registro durável do inventário.
 
 ## Formato `LF1`
 
@@ -72,12 +88,13 @@ LF1|118789|CANTINHO CAFE RUBI|85990|||c1
 ## Comandos
 
 ```bash
-npm install      # instala as dependências
+npm ci           # instala as dependências na versão do package-lock.json
 npm run dev      # servidor de desenvolvimento
 npm test         # suíte de testes
 npm run build    # build de produção em dist/
 npm run preview  # serve o build local
 npm run fixtures:qr  # gera as imagens de teste com QR Codes LF1
+npm run icons        # desenha os ícones da aplicação instalada em public/icons/
 ```
 
 ## Estrutura do Projeto
@@ -143,10 +160,10 @@ scannable-label-inventory-aggregator/
         ProductsColumn.test.jsx
         ProductSearchField.jsx    campo de busca com a contagem e o limpar
         ProductSearchField.test.jsx
-        ProductSummaryTable.jsx   tabela do resumo por produto, a partir de 640 px
+        ProductSummaryTable.jsx   tabela do resumo por produto, a partir de 640 px, com as setas entre as linhas
         ProductSummaryTable.test.jsx
         ProductRow.jsx            linha do produto, com o nome que seleciona
-        ProductCards.jsx          cartões do resumo por produto, abaixo de 640 px
+        ProductCards.jsx          cartões do resumo por produto, abaixo de 640 px, com as setas entre os cartões
         ProductCards.test.jsx
         productDisplay.jsx        nome, valores em R$, valor ausente com o motivo e etiquetas
         productDisplay.test.jsx
@@ -157,7 +174,7 @@ scannable-label-inventory-aggregator/
         ProductFacts.test.jsx
         ConflictResolver.jsx      conflitos do produto, escolha, desfazer e descarte, uma gravação por vez
         ConflictResolver.test.jsx
-        ConflictField.jsx         variantes de um campo com os exemplares de cada uma
+        ConflictField.jsx         variantes de um campo com os exemplares de cada uma, com as setas entre elas
         ConflictField.test.jsx
         IgnoredChoiceNote.jsx     escolha gravada que deixou de valer, com o motivo
         IgnoredChoiceNote.test.jsx
@@ -210,6 +227,8 @@ scannable-label-inventory-aggregator/
         InlineAlert.test.jsx
         SegmentedControl.jsx      escolha única entre poucas opções, com as setas
         SegmentedControl.test.jsx
+        useRovingFocus.js         uma parada de Tab por lista, com as setas, Home e End entre os itens
+        useRovingFocus.test.jsx
         focusClasses.js           realce de foco compartilhado
     domain/
       schemas/

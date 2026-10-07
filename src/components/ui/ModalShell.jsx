@@ -168,7 +168,15 @@ export default function ModalShell({
             : 'max-lg:!h-[calc(100dvh-32px)] max-lg:!max-h-none max-lg:!w-[calc(100dvw-32px)]',
         )}
       >
-        <header className="flex flex-none items-start justify-between gap-4 border-b border-neutro-borda px-recuo py-4 lg:py-3">
+        {/*
+          Topo e rodape do painel sao `div`, e nao `header` e `footer`: fora de
+          uma secao, os dois viram marcos de pagina, e o leitor de tela
+          anunciaria um segundo cabecalho e um segundo rodape da aplicacao.
+        */}
+        <div
+          data-dialogo-topo=""
+          className="flex flex-none items-start justify-between gap-4 border-b border-neutro-borda px-recuo py-4 lg:py-3"
+        >
           <div className="min-w-0 flex-1 space-y-1">
             <h2
               id={titleId}
@@ -186,14 +194,17 @@ export default function ModalShell({
           <IconButton ref={closeButtonRef} label="Fechar" onClick={onClose}>
             <X className="h-4 w-4" aria-hidden="true" />
           </IconButton>
-        </header>
+        </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-recuo py-4">{children}</div>
 
         {footer ? (
-          <footer className="flex flex-none flex-col-reverse gap-2 border-t border-neutro-borda px-recuo py-3 sm:flex-row sm:justify-end">
+          <div
+            data-dialogo-acoes=""
+            className="flex flex-none flex-col-reverse gap-2 border-t border-neutro-borda px-recuo py-3 sm:flex-row sm:justify-end"
+          >
             {footer}
-          </footer>
+          </div>
         ) : null}
       </div>
     </div>

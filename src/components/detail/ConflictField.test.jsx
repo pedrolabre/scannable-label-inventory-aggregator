@@ -102,6 +102,33 @@ describe('ConflictField', () => {
     ]);
   });
 
+  it('é uma parada de Tab no grupo, na escolhida, e as setas andam sem escolher', async () => {
+    const onChoose = vi.fn();
+
+    await renderField({
+      onChoose,
+      conflict: { ...PRICE_CONFLICT, status: 'resolved', chosenValue: 1000 },
+    });
+
+    expect(variants().map((button) => button.tabIndex)).toEqual([-1, 0]);
+
+    await view.focus(variants()[1]);
+    await view.press('ArrowUp');
+
+    expect(document.activeElement).toBe(variants()[0]);
+    expect(onChoose).not.toHaveBeenCalled();
+
+    await view.click(document.activeElement);
+
+    expect(onChoose).toHaveBeenCalledWith(900, 0, false);
+  });
+
+  it('deixa a primeira variante como parada de Tab no campo em aberto', async () => {
+    await renderField();
+
+    expect(variants().map((button) => button.tabIndex)).toEqual([0, -1]);
+  });
+
   it('marca a escolhida, mostra o desfazer e entrega a posição dela', async () => {
     const onUndo = vi.fn();
 

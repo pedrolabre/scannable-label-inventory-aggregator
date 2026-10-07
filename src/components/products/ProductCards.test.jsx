@@ -71,4 +71,23 @@ describe('ProductCards', () => {
 
     expect(onSelect).toHaveBeenCalledWith('DEMO-2');
   });
+  it('é uma parada de Tab na lista, com setas e End, sem selecionar ao andar', async () => {
+    const onSelect = vi.fn();
+
+    await view.render(<ProductCards products={PRODUCTS} onSelect={onSelect} />);
+
+    const buttons = () => cards().map((card) => card.querySelector('button'));
+
+    expect(buttons().map((button) => button.tabIndex)).toEqual([0, -1]);
+
+    await view.focus(buttons()[0]);
+    await view.press('End');
+
+    expect(document.activeElement).toBe(buttons()[1]);
+
+    await view.press('ArrowUp');
+
+    expect(document.activeElement).toBe(buttons()[0]);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
 });

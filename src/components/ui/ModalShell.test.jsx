@@ -185,12 +185,13 @@ describe('ModalShell', () => {
     expect(dialog().className).toContain('max-h-[calc(100dvh-96px)]');
     expect(body.className).toContain('overflow-y-auto');
     expect(body.className).toContain('min-h-0');
-    expect(dialog().querySelector('footer')).toBeNull();
+    expect(dialog().querySelector('[data-dialogo-acoes]')).toBeNull();
 
     await view.press('Escape');
     await open({ footer: <button type="button">Nova sessão</button> });
 
-    expect(dialog().querySelector('footer')).not.toBeNull();
+    expect(dialog().querySelector('[data-dialogo-acoes]')).not.toBeNull();
+    expect(dialog().querySelector('header, footer')).toBeNull();
   });
 
   /**

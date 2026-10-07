@@ -28,7 +28,10 @@ export default {
        * impede a tela de virar semaforo conforme novos estados entrarem.
        *
        * `neutro.papel` existe para uma coisa so: separar a coluna central das
-       * duas laterais brancas e alternar as faixas da listagem.
+       * duas laterais brancas. `neutro.faixa` alterna as linhas da listagem,
+       * um passo mais escuro que o papel para aparecer sobre o branco e um
+       * passo mais claro que `neutro.superficie`, que e a cor do ponteiro
+       * sobre a linha.
        */
       colors: {
         marca: {
@@ -51,6 +54,7 @@ export default {
         neutro: {
           branco: '#FFFFFF',
           papel: '#FAFAFA',
+          faixa: '#F4F4F4',
           superficie: '#EFEFEF',
           tinta: '#141414',
           tintaMedia: '#333333',

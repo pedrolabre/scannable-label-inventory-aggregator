@@ -252,7 +252,7 @@ describe('App', () => {
 
     expect(region.previousElementSibling.tagName).toBe('HEADER');
     expect(region.nextElementSibling.tagName).toBe('MAIN');
-    expect(band.textContent).toContain('Versão nova do StockVision disponível.');
+    expect(band.textContent).toContain('Versão nova disponível.');
     expect(apply).not.toHaveBeenCalled();
   });
 });

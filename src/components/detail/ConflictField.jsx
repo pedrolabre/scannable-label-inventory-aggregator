@@ -6,6 +6,7 @@ import { fieldList } from '../products/productDisplay.jsx';
 import Button from '../ui/Button.jsx';
 import { FOCUS_OUTLINE, FOCUS_OUTLINE_COLORS } from '../ui/focusClasses.js';
 import InlineAlert from '../ui/InlineAlert.jsx';
+import { useRovingFocus } from '../ui/useRovingFocus.js';
 
 import { fieldTitle, variantCopiesText, variantValueText } from './detailText.js';
 import IgnoredChoiceNote from './IgnoredChoiceNote.jsx';
@@ -18,8 +19,12 @@ import { copyNumbersOf } from './productDetail.js';
  *
  * Cada variante e um botao, e o escolhido fica marcado (`aria-pressed`). Um
  * grupo de opcao unica marcaria a opcao a cada seta, e cada seta gravaria uma
- * escolha no banco; com botoes, so o clique ou o `Enter` gravam. Tocar outra
- * variante num campo resolvido troca a escolha direto.
+ * escolha no banco; com botoes, so o clique, o `Enter` ou o `Espaco` gravam.
+ * Tocar outra variante num campo resolvido troca a escolha direto.
+ *
+ * O grupo e uma parada so de `Tab`, na variante escolhida ou na primeira, e as
+ * setas andam entre as variantes sem escolher: com varios campos em conflito,
+ * o teclado atravessa o produto campo a campo.
  *
  * Durante a gravacao o botao fica ocupado por `aria-disabled`, e nao por
  * `disabled`: o botao desligado perderia o foco no meio do gesto.
@@ -69,6 +74,7 @@ export default function ConflictField({
   const chosenIndex = isResolved
     ? conflict.variants.findIndex((variant) => variant.value === conflict.chosenValue)
     : -1;
+  const roving = useRovingFocus({ count: conflict.variants.length, activeIndex: chosenIndex });
 
   return (
     <div data-campo={conflict.field} className="space-y-2">
@@ -86,7 +92,13 @@ export default function ConflictField({
 
       {ignoredChoice ? <IgnoredChoiceNote choice={ignoredChoice} /> : null}
 
-      <div role="group" aria-labelledby={titleId} className="space-y-1.5">
+      <div
+        ref={roving.containerRef}
+        role="group"
+        aria-labelledby={titleId}
+        onKeyDown={roving.onKeyDown}
+        className="space-y-1.5"
+      >
         {conflict.variants.map((variant, index) => {
           const isChosen = index === chosenIndex;
 
@@ -98,6 +110,7 @@ export default function ConflictField({
               aria-pressed={isChosen}
               aria-disabled={isBusy || undefined}
               disabled={isDisabled}
+              {...roving.itemProps(index)}
               className={cx(VARIANT_BASE, isChosen ? VARIANT_CHOSEN : VARIANT_IDLE)}
               onClick={() => onChoose(variant.value, index, isChosen)}
             >

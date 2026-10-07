@@ -1,5 +1,6 @@
 import { cx } from '../../lib/cx.js';
 import { FOCUS_OUTLINE_COLORS } from '../ui/focusClasses.js';
+import { useRovingFocus } from '../ui/useRovingFocus.js';
 
 import { ProductMarks, ProductName, ProductPrice, ProductTotal } from './productDisplay.jsx';
 
@@ -15,13 +16,24 @@ const INSET_FOCUS_OUTLINE = cx(
  * linha, o codigo e a conta de quantidade vezes preco embaixo, e as etiquetas
  * por ultimo.
  *
- * O cartao inteiro e o botao que seleciona o produto: um alvo de toque largo e
- * uma parada de `Tab` por produto. A ordem, as faixas e a marca do selecionado
- * sao as mesmas da tabela.
+ * O cartao inteiro e o botao que seleciona o produto, um alvo de toque largo.
+ * A ordem, as faixas, a marca do selecionado e o teclado sao os mesmos da
+ * tabela: uma parada de `Tab` na lista, setas entre os cartoes, `Home` e `End`
+ * nas pontas, e `Enter` ou `Espaco` para selecionar.
  */
 export default function ProductCards({ products, selectedCode = null, onSelect }) {
+  const roving = useRovingFocus({
+    count: products.length,
+    activeIndex: products.findIndex((product) => product.systemCode === selectedCode),
+  });
+
   return (
-    <ul aria-label="Resumo por produto" className="divide-y divide-neutro-divisor bg-neutro-branco">
+    <ul
+      ref={roving.containerRef}
+      aria-label="Resumo por produto"
+      onKeyDown={roving.onKeyDown}
+      className="divide-y divide-neutro-divisor bg-neutro-branco"
+    >
       {products.map((product, index) => {
         const isSelected = product.systemCode === selectedCode;
 
@@ -31,13 +43,14 @@ export default function ProductCards({ products, selectedCode = null, onSelect }
             data-produto={product.systemCode}
             className={cx(
               isSelected && 'bg-marca-vermelhoTenue',
-              !isSelected && index % 2 === 1 && 'bg-neutro-papel',
+              !isSelected && index % 2 === 1 && 'bg-neutro-faixa',
             )}
           >
             <button
               type="button"
               aria-current={isSelected ? 'true' : undefined}
               onClick={() => onSelect(product.systemCode)}
+              {...roving.itemProps(index)}
               className={cx(
                 'flex min-h-controle w-full items-start gap-3 px-recuo py-3 text-left',
                 INSET_FOCUS_OUTLINE,

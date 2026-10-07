@@ -53,7 +53,7 @@ describe('fila ainda não gravada', () => {
 
   it('escreve a frase conforme a fila, no singular e no plural', () => {
     expect(updateDetailOf({ waiting: 0, failed: 0 })).toBe(
-      'A sessão e as fotos gravadas continuam depois de atualizar.',
+      'A sessão e as fotos gravadas continuam.',
     );
     expect(updateDetailOf({ waiting: 1, failed: 0 })).toBe(
       'Atualize quando a fila terminar: 1 foto ainda não foi gravada.',
@@ -89,10 +89,8 @@ describe('com versão nova', () => {
     const apply = await announce();
 
     expect(band().closest('[role="status"]')).toBeTruthy();
-    expect(band().textContent).toContain('Versão nova do StockVision disponível.');
-    expect(band().textContent).toContain(
-      'A sessão e as fotos gravadas continuam depois de atualizar.',
-    );
+    expect(band().textContent).toContain('Versão nova disponível.');
+    expect(band().textContent).toContain('A sessão e as fotos gravadas continuam.');
     expect(document.activeElement).toBe(before);
     expect(apply).not.toHaveBeenCalled();
   });

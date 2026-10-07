@@ -80,6 +80,8 @@ describe('AppShell', () => {
     expect(skip.getAttribute('href')).toBe(`#${MAIN_CONTENT_ID}`);
     expect(skip.className).toContain('sr-only');
     expect(skip.className).toContain('focus:not-sr-only');
+    expect(skip.className).toContain('focus:min-h-controle');
+    expect(skip.className).toContain('focus:px-4');
     expect(skip.className).toContain('focus-visible:outline-2');
     expect(main.id).toBe(MAIN_CONTENT_ID);
     expect(main.tabIndex).toBe(-1);

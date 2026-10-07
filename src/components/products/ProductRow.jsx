@@ -23,17 +23,23 @@ const NUMBER_CELL = cx(CELL_BASE, SINGLE_LINE, 'text-right tabular-nums');
  * Uma linha da tabela do resumo por produto: codigo, nome com as etiquetas,
  * preco, quantidade e total.
  *
- * O nome e o botao que seleciona o produto: uma parada de `Tab` por linha, com
- * a altura de controle da tela, e as etiquetas descrevem o botao para quem usa
- * leitor de tela. O resto da linha tambem seleciona com o ponteiro, porque
+ * O nome e o botao que seleciona o produto, com a altura de controle da tela,
+ * e as etiquetas descrevem o botao para quem usa leitor de tela. A parada de
+ * `Tab` e as setas vem da tabela (`focusProps`). O resto da linha tambem seleciona com o ponteiro, porque
  * mirar so no nome numa linha larga e pedir precisao a toa.
  *
- * As linhas pares ganham `neutro.papel`, para o olho seguir a linha de uma
+ * As linhas pares ganham `neutro.faixa`, para o olho seguir a linha de uma
  * ponta a outra. O produto selecionado troca a faixa pelo fundo de marca, o
  * nome fica em peso maior e o botao leva `aria-current`: a escolha nunca e
  * dita so pela cor.
  */
-export default function ProductRow({ product, index, isSelected = false, onSelect }) {
+export default function ProductRow({
+  product,
+  index,
+  isSelected = false,
+  onSelect,
+  focusProps = null,
+}) {
   const marksId = useId();
   const hasMarks = productMarks(product).length > 0;
 
@@ -50,7 +56,7 @@ export default function ProductRow({ product, index, isSelected = false, onSelec
       className={cx(
         'cursor-pointer transition-colors',
         isSelected && 'bg-marca-vermelhoTenue',
-        !isSelected && index % 2 === 1 && 'bg-neutro-papel',
+        !isSelected && index % 2 === 1 && 'bg-neutro-faixa',
         !isSelected && 'hover:bg-neutro-superficie',
       )}
     >
@@ -64,6 +70,7 @@ export default function ProductRow({ product, index, isSelected = false, onSelec
           aria-current={isSelected ? 'true' : undefined}
           aria-describedby={hasMarks ? marksId : undefined}
           onClick={() => onSelect(product.systemCode)}
+          {...focusProps}
           className={cx(
             'flex min-h-controle w-full min-w-0 items-center text-left text-neutro-tinta',
             isSelected ? 'font-bold' : 'font-semibold',
