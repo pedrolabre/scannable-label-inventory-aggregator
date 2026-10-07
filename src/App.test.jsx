@@ -4,13 +4,17 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import App from './App.jsx';
 import { APP_NAME } from './lib/app-meta.js';
+import { announceUpdate, resetUpdateState } from './pwa/updateState.js';
 import { useSessionStore } from './store/useSessionStore.js';
 import { lf1Text, readingOf, sourceOf } from './test-fixtures/readingFixtures.js';
 import { useReactRoot } from './test-fixtures/reactRoot.js';
 
 const initialSession = useSessionStore.getState();
 const view = useReactRoot({
-  cleanup: () => useSessionStore.setState(initialSession, true),
+  cleanup: () => {
+    useSessionStore.setState(initialSession, true);
+    resetUpdateState();
+  },
 });
 
 const SESSION = { id: 'sessao-teste', name: 'Inventário 02/10/2026' };
@@ -232,5 +236,23 @@ describe('App', () => {
     expect(statusValue('produtos')).toBe('1');
     expect(statusValue('valor')).toBe('R$ 10,00');
     expect(tableCodes()).toEqual(['A-1']);
+  });
+
+  it('mostra a versão nova numa faixa entre o cabeçalho e as colunas, sem recarregar', async () => {
+    const apply = vi.fn();
+
+    await view.render(<App />);
+
+    expect(view.container.querySelector('section[aria-label="Versão nova"]')).toBeNull();
+
+    await view.update(() => announceUpdate(apply));
+
+    const band = view.container.querySelector('section[aria-label="Versão nova"]');
+    const region = band.closest('[data-aviso-versao]');
+
+    expect(region.previousElementSibling.tagName).toBe('HEADER');
+    expect(region.nextElementSibling.tagName).toBe('MAIN');
+    expect(band.textContent).toContain('Versão nova do StockVision disponível.');
+    expect(apply).not.toHaveBeenCalled();
   });
 });

@@ -21,11 +21,13 @@ Em desenvolvimento inicial.
 - Exportação pelo botão `Exportar` do topo, num diálogo, com os arquivos gerados no próprio aparelho: o CSV do resumo por produto, o CSV dos exemplares, o XML do relatório completo e o PDF para leitura, cada um no próprio botão, com o nome `inventario-AAAA-MM-DD-HHMM.<ext>` na data e hora locais da geração (o dos exemplares com `-exemplares` no fim).
 - O CSV abre em planilha em português: marca UTF-8, colunas separadas por ponto e vírgula, cabeçalho em português, valores em centavos inteiros e numa coluna em reais, e o texto que a planilha leria como fórmula precedido de apóstrofo. A mesma sessão gera o mesmo arquivo, byte a byte.
 - O XML (`versao="1"`) leva, além do que está no CSV, a sessão, os totais, a hora da geração com o fuso do aparelho (`2026-10-06T17:03:48-03:00`), os conflitos resolvidos com o valor escolhido e as variantes, os textos rejeitados inteiros com o motivo, as fotos com o estado e o motivo da falha, e as escolhas gravadas que deixaram de valer. Exemplares aninhados no produto, valores só em centavos inteiros, cada motivo com o código e a frase, valor ausente fora do arquivo, fotos pelo identificador ao lado do nome. Todo texto é escapado, e o caractere que o XML 1.0 não aceita vira `U+FFFD`. A mesma sessão gera o mesmo arquivo, byte a byte.
-- O PDF sai em páginas A4 retrato, com a helvetica do próprio leitor de PDF, sem fonte externa: o nome da sessão, a data e a hora da geração com o fuso (`06/10/2026 às 17:03:48 (UTC-03:00)`), os totais, o resumo por produto, os conflitos resolvidos com o valor escolhido e as variantes, os exemplares, os textos rejeitados com o motivo, as fotos com o estado e o motivo da falha, e as escolhas gravadas que deixaram de valer. Valores em reais (`R$ 1.234,56`), valor ausente como travessão com o motivo escrito abaixo da tabela, nome e texto LF1 cortados com reticências na largura da coluna, cabeçalho das tabelas repetido em cada página e rodapé com o nome da sessão e `Página N de M`. Caractere que a fonte não escreve (emoji, ideograma, caractere de controle) sai como `?`, e uma nota no fim diz quantos foram trocados. O motor de PDF é baixado só na primeira exportação em PDF, a tela continua respondendo enquanto as páginas são geradas, e a mesma sessão gera o mesmo arquivo, byte a byte.
+- O PDF sai em páginas A4 retrato, com a helvetica do próprio leitor de PDF, sem fonte externa: o nome da sessão, a data e a hora da geração com o fuso (`06/10/2026 às 17:03:48 (UTC-03:00)`), os totais, o resumo por produto, os conflitos resolvidos com o valor escolhido e as variantes, os exemplares, os textos rejeitados com o motivo, as fotos com o estado e o motivo da falha, e as escolhas gravadas que deixaram de valer. Valores em reais (`R$ 1.234,56`), valor ausente como travessão com o motivo escrito abaixo da tabela, nome e texto LF1 cortados com reticências na largura da coluna, cabeçalho das tabelas repetido em cada página e rodapé com o nome da sessão e `Página N de M`. Caractere que a fonte não escreve (emoji, ideograma, caractere de controle) sai como `?`, e uma nota no fim diz quantos foram trocados. O motor de PDF entra na página só na primeira exportação em PDF (o arquivo já está no aparelho desde a primeira visita, para o uso sem rede), a tela continua respondendo enquanto as páginas são geradas, e a mesma sessão gera o mesmo arquivo, byte a byte.
 - Com conflito aberto a exportação fica bloqueada, com a contagem à vista e o atalho para o primeiro produto em conflito; sessão sem produto gera só o XML e o PDF, e sessão sem foto não gera arquivo; escolha gravada de produto que saiu da sessão aparece como aviso no diálogo.
 - Sessões de inventário guardadas no IndexedDB, abertas, criadas, renomeadas e apagadas num diálogo, com o nome padrão de data e hora. Ao recarregar, volta a última sessão aberta no aparelho. As fotos não são guardadas.
 - Fotos da sessão listadas com os textos lidos; remover uma foto tira também os textos dela, e os totais se refazem na hora.
-- PWA instalável e utilizável offline.
+- Instalável como aplicativo: no Chrome do computador e do Android, pelo ícone de instalação da barra de endereço ou pelo menu; no iPhone, por `Adicionar à Tela de Início`. Abre em janela própria, com o nome e o ícone do StockVision.
+- Funciona sem rede depois da primeira visita: a primeira abertura guarda no aparelho a aplicação inteira, com o leitor de QR Code, o motor de PDF, as fontes e os ícones. Sem rede, a página abre, uma foto nova é lida e o CSV, o XML e o PDF são gerados. Com rede, a cada abertura o navegador confere se há versão nova no próprio endereço.
+- Versão nova aparece numa faixa abaixo do topo, com o botão `Atualizar`; a página nunca recarrega sozinha. Enquanto houver foto da fila ainda não gravada, o botão espera e a faixa diz quantas faltam; foto com erro na fila sai da lista ao atualizar, e a faixa avisa antes.
 
 ## Formato `LF1`
 
@@ -60,9 +62,11 @@ LF1|118789|CANTINHO CAFE RUBI|85990|||c1
 - Dexie 4 sobre o IndexedDB, com as sessões, as fotos processadas, as leituras e as resoluções de conflito.
 - Zustand 5 no estado das sessões.
 - lucide-react nos ícones da interface, importados um a um.
+- vite-plugin-pwa 1.3.0 (versão fixa) no service worker, no pré-cache e no manifesto, gerados no build; o registro fica com o código-fonte e a troca de versão espera o operador.
 - jsPDF 4.2.1 (versão fixa) no PDF exportado, carregado só na primeira exportação em PDF, com os módulos de captura de tela e de conversão de SVG fora do build.
 - zxing-wasm 3 na leitura dos QR Codes, carregado só na primeira foto, com o binário `zxing_reader.wasm` servido pela própria aplicação, em `public/zxing/`.
 - bwip-js nas imagens de teste com QR Codes `LF1`, geradas por `npm run fixtures:qr`.
+- Ícones da aplicação instalada desenhados por `npm run icons`, com as cores do `tailwind.config.js`, sem biblioteca de imagem.
 - Vitest com jsdom, e fake-indexeddb nos testes do banco local.
 
 ## Comandos
@@ -90,9 +94,11 @@ scannable-label-inventory-aggregator/
   README.md
   public/
     fonts/            IBM Plex Sans e Space Grotesk, latin e latin-ext
+    icons/            icon.svg, icon-192.png, icon-512.png, icon-maskable-512.png e apple-touch-icon-180.png
     zxing/            zxing_reader.wasm, o binário do leitor de QR Code
   scripts/
     generate-qr-fixtures.mjs    gera as imagens de teste com QR Codes LF1
+    generate-icons.mjs          desenha os ícones da aplicação instalada
   src/
     main.jsx
     App.jsx
@@ -101,7 +107,7 @@ scannable-label-inventory-aggregator/
     AppDetail.test.jsx            coluna Detalhe e diálogo de rejeitados dentro da tela inteira, com o banco real
     AppExport.test.jsx            exportação dentro da tela inteira, com o banco real e o download interceptado
     components/
-      AppShell.jsx                contorno de janela única: três colunas na tela larga, uma por vez na estreita
+      AppShell.jsx                contorno de janela única: três colunas na tela larga, uma por vez na estreita, e a faixa do aviso abaixo do topo
       AppShell.test.jsx
       AppHeader.jsx               nome do produto, botão Exportar e barra de vistas da tela estreita
       AppHeader.test.jsx
@@ -167,6 +173,9 @@ scannable-label-inventory-aggregator/
         productDetail.test.js
         detailText.js             textos da coluna e do diálogo
         detailText.test.js
+      pwa/
+        UpdateNotice.jsx          faixa da versão nova, com o Atualizar que espera a fila
+        UpdateNotice.test.jsx
       export/
         ExportDialog.jsx          diálogo de exportação: bloqueio, avisos e as seções CSV, XML e PDF, com o andamento do PDF
         ExportDialog.test.jsx
@@ -312,12 +321,22 @@ scannable-label-inventory-aggregator/
       pdfEngine.js                biblioteca de PDF, carregada sob demanda
       pdf.js                      escrita do PDF a partir da descrição das páginas, cedendo a tela entre elas
       pdf.test.js
+    pwa/
+      manifest.js                 nome, descrição, cores e ícones da aplicação instalada, lidos pelo build
+      manifest.test.js
+      documentMeta.test.js        título, descrição, ícones e metas do index.html
+      icons.test.js               ícones publicados iguais ao desenho do script
+      registerServiceWorker.js    registro do service worker e anúncio da versão nova
+      registerServiceWorker.test.js
+      updateState.js              versão nova esperando o operador, fora do React
+      updateState.test.js
     test-fixtures/
       qrFixtures.js               textos das imagens de teste
       readPngFixture.js           leitura dos PNGs de teste na suíte
       reactRoot.js                montagem dos componentes na suíte
       readingFixtures.js          leituras, fontes e linhas de produto sintéticas para os testes
       pdfBytes.js                 leitura dos bytes do PDF gerado, só para os testes
+      pwaRegister.js              registro falso do service worker, só para os testes
       qr-1.png, qr-4.png, qr-8.png
     styles/
       global.css      faces de fonte e variáveis de densidade

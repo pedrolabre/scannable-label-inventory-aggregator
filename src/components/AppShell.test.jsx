@@ -88,4 +88,26 @@ describe('AppShell', () => {
 
     expect(document.activeElement).toBe(main);
   });
+
+  it('põe o aviso entre o cabeçalho e as colunas, no fluxo', async () => {
+    await renderShell({ notice: <div data-aviso="">aviso</div> });
+
+    const shell = view.container.firstElementChild;
+    const order = [...shell.children].map((child) => child.tagName.toLowerCase());
+    const notice = shell.querySelector('[data-aviso]');
+
+    expect(order).toEqual(['a', 'header', 'div', 'main', 'footer']);
+    expect(notice.nextElementSibling.tagName).toBe('MAIN');
+    expect(notice.previousElementSibling.tagName).toBe('HEADER');
+  });
+
+  it('não acrescenta nada sem aviso', async () => {
+    await renderShell();
+
+    const order = [...view.container.firstElementChild.children].map((child) =>
+      child.tagName.toLowerCase(),
+    );
+
+    expect(order).toEqual(['a', 'header', 'main', 'footer']);
+  });
 });

@@ -32,9 +32,11 @@ export function isWideScreen() {
 }
 
 /**
- * Contorno da aplicacao: cinco faixas em coluna, dentro da altura da janela.
+ * Contorno da aplicacao: cinco faixas em coluna, dentro da altura da janela,
+ * mais o aviso de versao nova enquanto ele existir.
  *
  *     cabecalho          48 px    nome e, na tela estreita, a barra de vistas
+ *     aviso              so com versao nova da aplicacao instalada
  *     coluna esquerda   240 px    entrada: sessao, fotos e fila
  *     coluna central    elastica  produtos
  *     coluna direita    288 px    detalhe do produto
@@ -64,12 +66,16 @@ export function isWideScreen() {
  * fica onde estava. Com ele, o atalho move o foco de verdade, e o valor
  * negativo mantem o elemento fora da ordem de tabulacao.
  *
+ * O aviso fica entre o cabecalho e as colunas, no fluxo: quando aparece, as
+ * colunas cedem a altura dele, e nada se sobrepoe ao conteudo.
+ *
  * As tres colunas chegam por posicao, e nao como filhos soltos: este contorno
  * decide onde cada uma vive e com que largura, e nao sabe nada do que ha
  * dentro delas.
  */
 export default function AppShell({
   header,
+  notice = null,
   left,
   center,
   right,
@@ -98,6 +104,8 @@ export default function AppShell({
       </a>
 
       {header}
+
+      {notice}
 
       <main
         id={MAIN_CONTENT_ID}

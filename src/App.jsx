@@ -8,6 +8,7 @@ import RejectedDialog from './components/detail/RejectedDialog.jsx';
 import ExportDialog from './components/export/ExportDialog.jsx';
 import StatusBar from './components/layout/StatusBar.jsx';
 import ProductsColumn from './components/products/ProductsColumn.jsx';
+import UpdateNotice from './components/pwa/UpdateNotice.jsx';
 import SessionDialog from './components/sessions/SessionDialog.jsx';
 import useInventoryReport from './components/useInventoryReport.js';
 
@@ -96,6 +97,7 @@ export default function App() {
     <>
       <AppShell
         activeView={activeView}
+        notice={<UpdateNotice />}
         header={
           <AppHeader
             activeView={activeView}

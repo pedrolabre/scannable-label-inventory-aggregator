@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import App from './App.jsx';
+import { registerServiceWorker } from './pwa/registerServiceWorker.js';
 import { useSessionStore } from './store/useSessionStore.js';
 import './styles/global.css';
 
@@ -15,6 +16,11 @@ useSessionStore
   .catch((error) => {
     console.error('Falha ao abrir as sessões salvas no dispositivo.', error);
   });
+
+// O registro corre fora da arvore de componentes, uma vez por carga da pagina.
+// Ele guarda a aplicacao para o uso sem rede e, quando ha versao nova, acende
+// o aviso na tela pelo estado de atualizacao, sem recarregar nada sozinho.
+registerServiceWorker();
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
