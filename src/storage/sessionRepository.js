@@ -80,3 +80,15 @@ export function deleteSession(db, id) {
     await db.sessions.delete(id);
   });
 }
+
+export function clearSessionContent(db, id) {
+  return db.transaction('rw', [db.sessions, db.sources, db.readings, db.resolutions], async () => {
+    const session = await touchSession(db, id);
+
+    await db.readings.where('sessionId').equals(id).delete();
+    await db.sources.where('sessionId').equals(id).delete();
+    await db.resolutions.where('sessionId').equals(id).delete();
+
+    return { session };
+  });
+}

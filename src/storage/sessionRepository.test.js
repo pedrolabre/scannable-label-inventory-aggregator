@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { StockVisionDatabase } from './indexed-db.js';
 import {
+  clearSessionContent,
   createSession,
   deleteSession,
   listSessions,
@@ -177,6 +178,57 @@ describe('deleteSession', () => {
 
   it('recusa sessão inexistente', async () => {
     await expect(deleteSession(db, crypto.randomUUID())).rejects.toMatchObject({
+      name: 'MissingSessionError',
+    });
+  });
+});
+
+describe('clearSessionContent', () => {
+  it('apaga fontes, leituras e resoluções da sessão e a mantém com a data nova', async () => {
+    const limpa = await filledSession('Limpa', 'a');
+    const mantida = await filledSession('Mantida', 'a');
+
+    vi.setSystemTime(new Date('2026-09-24T15:00:00.000Z'));
+
+    const { session } = await clearSessionContent(db, limpa.id);
+
+    expect(session).toEqual({ ...limpa, updatedAt: '2026-09-24T15:00:00.000Z' });
+    expect(await db.sessions.get(limpa.id)).toEqual(session);
+    expect(await countsOf(limpa.id)).toEqual({
+      sessions: 1,
+      sources: 0,
+      readings: 0,
+      resolutions: 0,
+    });
+    expect(await countsOf(mantida.id)).toEqual({
+      sessions: 1,
+      sources: 1,
+      readings: 1,
+      resolutions: 1,
+    });
+  });
+
+  it('desfaz tudo quando uma das remoções falha no meio da transação', async () => {
+    const session = await filledSession('Loja', 'b');
+
+    const falha = vi.spyOn(db.resolutions, 'where').mockImplementation(() => {
+      throw new Error('falha simulada');
+    });
+
+    await expect(clearSessionContent(db, session.id)).rejects.toThrow('falha simulada');
+    falha.mockRestore();
+
+    expect(await countsOf(session.id)).toEqual({
+      sessions: 1,
+      sources: 1,
+      readings: 1,
+      resolutions: 1,
+    });
+    expect((await db.sessions.get(session.id)).updatedAt).toBe(session.updatedAt);
+  });
+
+  it('recusa sessão inexistente', async () => {
+    await expect(clearSessionContent(db, crypto.randomUUID())).rejects.toMatchObject({
       name: 'MissingSessionError',
     });
   });

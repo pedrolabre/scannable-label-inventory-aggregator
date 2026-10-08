@@ -41,9 +41,7 @@ describe('AppHeader', () => {
   it('avisa a troca de vista pelo toque e pelas setas', async () => {
     const onViewChange = vi.fn();
 
-    await view.render(
-      <AppHeader activeView={SHELL_VIEWS.PRODUCTS} onViewChange={onViewChange} />,
-    );
+    await view.render(<AppHeader activeView={SHELL_VIEWS.PRODUCTS} onViewChange={onViewChange} />);
 
     expect(radios().find((radio) => radio.checked).value).toBe(SHELL_VIEWS.PRODUCTS);
 
@@ -67,7 +65,7 @@ describe('AppHeader', () => {
     expect(trigger.tagName).toBe('BUTTON');
     expect(trigger.textContent).toBe('Exportar');
     expect(trigger.querySelector('svg').getAttribute('aria-hidden')).toBe('true');
-    expect(trigger.parentElement.className).toContain('h-topo');
+    expect(trigger.closest('header > div').className).toContain('h-topo');
     expect(trigger.className).toContain('h-controle');
     expect(trigger.className).toContain('focus-visible:outline');
 
@@ -80,9 +78,62 @@ describe('AppHeader', () => {
     expect(view.container.querySelector('[data-gatilho-exportar]').disabled).toBe(true);
   });
 
-  it('fica sem o gatilho quando não recebe a ação', async () => {
+  it('fica sem os gatilhos quando não recebe as ações', async () => {
     await view.render(<AppHeader onViewChange={() => {}} />);
 
     expect(view.container.querySelector('[data-gatilho-exportar]')).toBeNull();
+    expect(view.container.querySelector('[data-gatilho-limpar]')).toBeNull();
+  });
+
+  it('põe Limpar fotos à esquerda de Exportar, com ícone e texto, desligável', async () => {
+    const onClear = vi.fn();
+
+    await view.render(
+      <AppHeader onViewChange={() => {}} onExport={vi.fn()} onClear={onClear} clearDisabled />,
+    );
+
+    const clear = view.container.querySelector('[data-gatilho-limpar]');
+    const exportTrigger = view.container.querySelector('[data-gatilho-exportar]');
+
+    expect(clear.tagName).toBe('BUTTON');
+    expect(clear.textContent).toBe('Limpar fotos');
+    expect(clear.querySelector('svg').getAttribute('aria-hidden')).toBe('true');
+    expect(clear.nextElementSibling).toBe(exportTrigger);
+    expect(clear.className).toContain('h-controle');
+    expect(clear.disabled).toBe(true);
+
+    await view.render(<AppHeader onViewChange={() => {}} onExport={vi.fn()} onClear={onClear} />);
+    await view.click(view.container.querySelector('[data-gatilho-limpar]'));
+
+    expect(onClear).toHaveBeenCalledTimes(1);
+  });
+
+  it('leva o foco para Exportar a cada pedido novo, e não na montagem', async () => {
+    await view.render(<AppHeader onViewChange={() => {}} onExport={vi.fn()} />);
+
+    const exportTrigger = view.container.querySelector('[data-gatilho-exportar]');
+
+    expect(document.activeElement).not.toBe(exportTrigger);
+
+    await view.render(
+      <AppHeader onViewChange={() => {}} onExport={vi.fn()} exportFocusRequest={1} />,
+    );
+
+    expect(document.activeElement).toBe(exportTrigger);
+  });
+
+  it('deixa os dois botões só com o ícone abaixo do ponto de corte, com o rótulo para leitor de tela', async () => {
+    await view.render(<AppHeader onViewChange={() => {}} onExport={vi.fn()} onClear={vi.fn()} />);
+
+    for (const selector of ['[data-gatilho-limpar]', '[data-gatilho-exportar]']) {
+      const trigger = view.container.querySelector(selector);
+      const label = trigger.querySelector('span');
+
+      expect(trigger.className).toContain('max-lg:w-controle');
+      expect(trigger.className).toContain('max-lg:px-0');
+      expect(label.className).toBe('max-lg:sr-only');
+      expect(trigger.textContent).toBe(label.textContent);
+      expect(trigger.querySelector('svg').getAttribute('aria-hidden')).toBe('true');
+    }
   });
 });

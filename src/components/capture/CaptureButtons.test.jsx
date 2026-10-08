@@ -71,7 +71,17 @@ describe('CaptureButtons', () => {
 
     const guidance = view.container.querySelector('[data-orientacao]');
 
-    expect(guidance.textContent).toBe('Enquadre a folha de frente, inteira e nítida.');
+    expect(guidance.textContent).toBe('Enquadre a etiqueta de frente e nítida.');
     expect(guidance.previousElementSibling.querySelectorAll('input[type="file"]')).toHaveLength(2);
+  });
+
+  it('avisa que a leitura acontece depois da foto, e não na câmera', async () => {
+    await view.render(<CaptureButtons enqueue={vi.fn()} />);
+
+    const help = view.container.querySelector('[data-orientacao]').nextElementSibling;
+
+    expect(help.textContent).toBe(
+      'A câmera não destaca o QR Code: tire a foto e a leitura aparece logo abaixo. Enviar fotos escolhe várias imagens de uma vez.',
+    );
   });
 });

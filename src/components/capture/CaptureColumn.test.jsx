@@ -25,7 +25,7 @@ describe('CaptureColumn', () => {
     ]);
     expect(body.className).toContain('overflow-y-auto');
     expect(section.querySelector('[data-orientacao]').textContent).toBe(
-      'Enquadre a folha de frente, inteira e nítida.',
+      'Enquadre a etiqueta de frente e nítida.',
     );
     expect(section.querySelector('[data-aviso-aparelho]').textContent).toBe(
       'Tudo roda neste aparelho: as fotos e as leituras ficam aqui, sem enviar nada pela internet.',

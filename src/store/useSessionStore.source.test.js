@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const DB = vi.hoisted(() => ({ name: 'banco simulado' }));
 
 const sessionRepository = vi.hoisted(() => ({
+  clearSessionContent: vi.fn(),
   createSession: vi.fn(),
   deleteSession: vi.fn(),
   listSessions: vi.fn(),
@@ -66,6 +67,9 @@ beforeEach(async () => {
   sourceRepository.deleteSource.mockImplementation(async (db, sessionId) => ({
     session: touched(sessionId === 's-recente' ? RECENTE : ANTIGA),
   }));
+  sessionRepository.clearSessionContent.mockImplementation(async (db, sessionId) => ({
+    session: touched(sessionId === 's-recente' ? RECENTE : ANTIGA),
+  }));
 
   await state().hydrate();
   vi.clearAllMocks();
@@ -122,6 +126,45 @@ describe('removeSource', () => {
     sourceRepository.deleteSource.mockRejectedValue(falha);
 
     await expect(state().removeSource('s-recente', 'f1')).rejects.toBe(falha);
+    expect(sessionRepository.listSessions).toHaveBeenCalledTimes(1);
+    expect(state()).toMatchObject({ sources: SOURCES, readings: READINGS });
+  });
+});
+
+describe('clearSessionSources', () => {
+  it('limpa pelo repositório e deixa o conteúdo da sessão aberta vazio, sem reler o banco', async () => {
+    await state().clearSessionSources('s-recente');
+
+    expect(sessionRepository.clearSessionContent).toHaveBeenCalledWith(DB, 's-recente');
+    expect(state()).toMatchObject({
+      currentSessionId: 's-recente',
+      sources: [],
+      readings: [],
+      resolutions: [],
+      sessions: [touched(RECENTE), ANTIGA],
+    });
+    expect(sourceRepository.listSourcesBySession).not.toHaveBeenCalled();
+  });
+
+  it('não mexe no conteúdo aberto quando a sessão limpa é outra', async () => {
+    await state().clearSessionSources('s-antiga');
+
+    expect(state().sessions).toEqual([touched(ANTIGA), RECENTE]);
+    expect(state()).toMatchObject({
+      sources: SOURCES,
+      readings: READINGS,
+      resolutions: RESOLUTIONS,
+    });
+  });
+
+  it('relê o banco e deixa a falha subir sem mexer no conteúdo', async () => {
+    const falha = Object.assign(new Error('A sessão não existe mais.'), {
+      name: 'MissingSessionError',
+    });
+
+    sessionRepository.clearSessionContent.mockRejectedValue(falha);
+
+    await expect(state().clearSessionSources('s-recente')).rejects.toBe(falha);
     expect(sessionRepository.listSessions).toHaveBeenCalledTimes(1);
     expect(state()).toMatchObject({ sources: SOURCES, readings: READINGS });
   });

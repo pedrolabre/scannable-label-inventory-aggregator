@@ -62,11 +62,12 @@ export default function CaptureButtons({ enqueue }) {
       </div>
 
       <p data-orientacao="" className="text-rotulo font-semibold text-neutro-tintaMedia">
-        Enquadre a folha de frente, inteira e nítida.
+        Enquadre a etiqueta de frente e nítida.
       </p>
 
       <p className="text-rotulo text-neutro-tintaFraca">
-        Fotografar abre a câmera para uma foto. Enviar fotos escolhe várias imagens de uma vez.
+        A câmera não destaca o QR Code: tire a foto e a leitura aparece logo abaixo. Enviar fotos
+        escolhe várias imagens de uma vez.
       </p>
     </section>
   );

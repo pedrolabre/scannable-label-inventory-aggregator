@@ -1,4 +1,5 @@
-import { Download } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import { Download, Trash2 } from 'lucide-react';
 
 import { APP_NAME } from '../lib/app-meta.js';
 
@@ -11,6 +12,9 @@ const VIEW_OPTIONS = [
   { value: SHELL_VIEWS.PRODUCTS, label: 'Produtos' },
   { value: SHELL_VIEWS.DETAIL, label: 'Detalhe' },
 ];
+
+const HEADER_ACTION_CLASSES = 'flex-none max-lg:w-controle max-lg:px-0';
+const HEADER_ACTION_LABEL_CLASSES = 'max-lg:sr-only';
 
 /**
  * Faixa do topo: o nome do produto, a acao de exportar e, na tela estreita, a
@@ -36,7 +40,18 @@ export default function AppHeader({
   onViewChange,
   onExport,
   exportDisabled = false,
+  onClear,
+  clearDisabled = false,
+  exportFocusRequest = 0,
 }) {
+  const exportRef = useRef(null);
+
+  useEffect(() => {
+    if (exportFocusRequest > 0) {
+      exportRef.current?.focus();
+    }
+  }, [exportFocusRequest]);
+
   return (
     <header className="flex flex-none flex-col border-b border-neutro-borda bg-neutro-branco">
       <div className="flex h-topo min-w-0 items-center justify-between gap-4 px-recuo">
@@ -44,16 +59,33 @@ export default function AppHeader({
           {APP_NAME}
         </h1>
 
-        {onExport ? (
-          <Button
-            data-gatilho-exportar=""
-            className="flex-none"
-            disabled={exportDisabled}
-            onClick={onExport}
-          >
-            <Download className="h-4 w-4 lg:h-[15px] lg:w-[15px]" aria-hidden="true" />
-            Exportar
-          </Button>
+        {onClear || onExport ? (
+          <div className="flex flex-none items-center gap-2">
+            {onClear ? (
+              <Button
+                data-gatilho-limpar=""
+                className={HEADER_ACTION_CLASSES}
+                disabled={clearDisabled}
+                onClick={onClear}
+              >
+                <Trash2 className="h-4 w-4 lg:h-[15px] lg:w-[15px]" aria-hidden="true" />
+                <span className={HEADER_ACTION_LABEL_CLASSES}>Limpar fotos</span>
+              </Button>
+            ) : null}
+
+            {onExport ? (
+              <Button
+                ref={exportRef}
+                data-gatilho-exportar=""
+                className={HEADER_ACTION_CLASSES}
+                disabled={exportDisabled}
+                onClick={onExport}
+              >
+                <Download className="h-4 w-4 lg:h-[15px] lg:w-[15px]" aria-hidden="true" />
+                <span className={HEADER_ACTION_LABEL_CLASSES}>Exportar</span>
+              </Button>
+            ) : null}
+          </div>
         ) : null}
       </div>
 

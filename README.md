@@ -25,10 +25,11 @@ MVP funcional.
 - Com conflito aberto a exportação fica bloqueada, com a contagem à vista e o atalho para o primeiro produto em conflito; sessão sem produto gera só o XML e o PDF, e sessão sem foto não gera arquivo; escolha gravada de produto que saiu da sessão aparece como aviso no diálogo.
 - Sessões de inventário guardadas no IndexedDB, abertas, criadas, renomeadas e apagadas num diálogo, com o nome padrão de data e hora. Ao recarregar, volta a última sessão aberta no aparelho. As fotos não são guardadas.
 - Fotos da sessão listadas com os textos lidos; remover uma foto tira também os textos dela, e os totais se refazem na hora.
+- `Limpar fotos`, no topo, ao lado de `Exportar`, apaga todas as fotos da sessão aberta depois de uma confirmação com as contagens: saem as fotos, os textos lidos e as escolhas de conflito, e a Fila de fotos é esvaziada. A sessão continua aberta, com o mesmo nome, e as outras sessões não mudam. O botão fica desligado sem foto para apagar e enquanto a fila anda.
 - Instalável como aplicativo: no Chrome do computador e do Android, pelo ícone de instalação da barra de endereço ou pelo menu; no iPhone, por `Adicionar à Tela de Início`. Abre em janela própria, com o nome e o ícone do StockVision.
 - Funciona sem rede depois da primeira visita: a primeira abertura guarda no aparelho a aplicação inteira, com o leitor de QR Code, o motor de PDF, as fontes e os ícones. Sem rede, a página abre, uma foto nova é lida e o CSV, o XML e o PDF são gerados. Com rede, a cada abertura o navegador confere se há versão nova no próprio endereço.
 - Uso completo pelo teclado: atalho `Pular para o conteúdo` no começo da página, contorno visível em todo controle, uma parada de `Tab` na tabela de produtos e em cada campo em conflito, com as setas entre as linhas e entre as variantes, `Home` e `End` nas pontas e `Enter` ou `Espaço` para escolher; diálogos com o foco preso, `Esc` fechando e o foco de volta ao botão que os abriu.
-- No celular, uma coluna por vez, escolhida pela barra de vistas do topo, com alvos de toque de 44 px; a partir de 1100 px de largura, as três colunas lado a lado numa janela sem rolagem de página.
+- No celular, uma coluna por vez, escolhida pela barra de vistas do topo, com alvos de toque de 44 px e os botões `Limpar fotos` e `Exportar` só com o ícone; a partir de 1100 px de largura, as três colunas lado a lado numa janela sem rolagem de página.
 - Versão nova aparece numa faixa abaixo do topo, com o botão `Atualizar`; a página nunca recarrega sozinha. Enquanto houver foto da fila ainda não gravada, o botão espera e a faixa diz quantas faltam; foto com erro na fila sai da lista ao atualizar, e a faixa avisa antes.
 
 ## O que o StockVision não faz
@@ -123,10 +124,11 @@ scannable-label-inventory-aggregator/
     AppProducts.test.jsx          coluna Produtos dentro da tela inteira
     AppDetail.test.jsx            coluna Detalhe e diálogo de rejeitados dentro da tela inteira, com o banco real
     AppExport.test.jsx            exportação dentro da tela inteira, com o banco real e o download interceptado
+    AppClear.test.jsx             limpeza das fotos dentro da tela inteira, do gatilho ao foco devolvido
     components/
       AppShell.jsx                contorno de janela única: três colunas na tela larga, uma por vez na estreita, e a faixa do aviso abaixo do topo
       AppShell.test.jsx
-      AppHeader.jsx               nome do produto, botão Exportar e barra de vistas da tela estreita
+      AppHeader.jsx               nome do produto, botões Limpar fotos e Exportar e barra de vistas da tela estreita
       AppHeader.test.jsx
       useInventoryReport.js       relatório da sessão aberta, derivado do store
       useInventoryReport.test.jsx
@@ -138,8 +140,10 @@ scannable-label-inventory-aggregator/
       capture/
         CaptureColumn.jsx         coluna Entrada: sessão, fotos, lote, rejeitados e falhas e fotos da sessão
         CaptureColumn.test.jsx
-        CaptureButtons.jsx        Fotografar, Enviar fotos e orientação de enquadramento
+        CaptureButtons.jsx        Fotografar, Enviar fotos, orientação de enquadramento e aviso de leitura depois da foto
         CaptureButtons.test.jsx
+        ClearSourcesDialog.jsx    confirmação e limpeza de todas as fotos da sessão aberta
+        ClearSourcesDialog.test.jsx
         SourceQueue.jsx           andamento, erro atual e fotos do lote ainda fora da sessão
         SourceQueue.test.jsx
         SourceRow.jsx             situação e frase de cada foto do lote
@@ -289,7 +293,7 @@ scannable-label-inventory-aggregator/
     storage/
       indexed-db.js               banco StockVisionDB, tabelas e índices
       indexed-db.test.js
-      sessionRepository.js        sessões e remoção em cascata
+      sessionRepository.js        sessões, remoção em cascata e limpeza do conteúdo da sessão
       sessionRepository.test.js
       sourceRepository.js         fotos da sessão, sem os bytes da imagem, e remoção com as leituras
       sourceRepository.test.js
@@ -302,7 +306,7 @@ scannable-label-inventory-aggregator/
       storageError.js             mensagens das falhas do armazenamento
       storageError.test.js
     store/
-      useSessionStore.js          sessões, conteúdo da sessão aberta, remoção de foto e escolhas nos conflitos
+      useSessionStore.js          sessões, conteúdo da sessão aberta, remoção e limpeza de fotos e escolhas nos conflitos
       useSessionStore.test.js
       useSessionStore.resolution.test.js
       useSessionStore.source.test.js
@@ -312,13 +316,14 @@ scannable-label-inventory-aggregator/
       resolutionChoices.js        conferência, soma e retirada das escolhas do operador
       resolutionChoices.test.js
       resolutionIntegration.test.js  escolha gravada e relida com o banco real
-      useCaptureStore.js          fila das fotos, uma por vez, e erro atual
+      useCaptureStore.js          fila das fotos, uma por vez, erro atual e limpeza do lote
       useCaptureStore.test.js
       captureItem.js              situação, frases e andamento de cada foto da fila
       captureItem.test.js
       captureTiming.js            tempo de cada passo e memória por foto
       captureTiming.test.js
       useCaptureStore.timing.test.js
+      useCaptureStore.batch.test.js
       captureIntegration.test.js  fila com o banco e o leitor reais
     lib/
       app-meta.js                 nome do produto

@@ -10,6 +10,7 @@ import {
   saveResolution,
 } from '../storage/resolutionRepository.js';
 import {
+  clearSessionContent,
   createSession as createStoredSession,
   deleteSession as deleteStoredSession,
   listSessions,
@@ -344,6 +345,15 @@ export const useSessionStore = create((set, get) => {
       );
 
       await reflectSessionWrite(session, (state) => withoutSource(state, sourceId));
+    },
+
+    clearSessionSources: async (sessionId) => {
+      const { session } = await writeAndReconcileOnFailure(
+        () => clearSessionContent(db(), sessionId),
+        get().hydrate,
+      );
+
+      await reflectSessionWrite(session, () => ({ ...EMPTY_CONTENT }));
     },
 
     /**

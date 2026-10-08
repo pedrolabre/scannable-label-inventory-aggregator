@@ -3,6 +3,9 @@ import { useCallback, useState } from 'react';
 import AppHeader from './components/AppHeader.jsx';
 import AppShell, { SHELL_VIEWS, isWideScreen } from './components/AppShell.jsx';
 import CaptureColumn from './components/capture/CaptureColumn.jsx';
+import ClearSourcesDialog, {
+  useCanClearSources,
+} from './components/capture/ClearSourcesDialog.jsx';
 import DetailColumn from './components/detail/DetailColumn.jsx';
 import RejectedDialog from './components/detail/RejectedDialog.jsx';
 import ExportDialog from './components/export/ExportDialog.jsx';
@@ -26,10 +29,11 @@ import useInventoryReport from './components/useInventoryReport.js';
  *
  * Um dialogo por vez, e por isso `openModal` guarda um identificador e nao uma
  * pilha: dois dialogos abertos dariam duas ordens de foco e dois `Esc`. Ele
- * tambem morre no recarregamento. Sao tres: sessoes, aberto pelo topo da
+ * tambem morre no recarregamento. Sao quatro: sessoes, aberto pelo topo da
  * Entrada; rejeitados e fotos com falha, aberto pelo gatilho acima das fotos
- * da sessao, que so aparece quando ha o que mostrar; e exportacao, aberto pelo
- * cabecalho sempre que ha sessao aberta.
+ * da sessao, que so aparece quando ha o que mostrar; exportacao, aberto pelo
+ * cabecalho sempre que ha sessao aberta; e limpeza das fotos, aberto pelo
+ * cabecalho.
  *
  * O produto selecionado e estado de tela como os outros: o codigo do sistema
  * e a sessao em que foi escolhido. A selecao se desfaz quando o produto sai do
@@ -44,6 +48,7 @@ const MODALS = Object.freeze({
   SESSIONS: 'sessoes',
   ISSUES: 'rejeitados',
   EXPORT: 'exportacao',
+  CLEAR: 'limpeza',
 });
 
 const NO_SESSION = 'sem-sessao';
@@ -54,8 +59,14 @@ export default function App() {
   const [openModal, setOpenModal] = useState(null);
   const [selection, setSelection] = useState(null);
   const [detailFocusRequest, setDetailFocusRequest] = useState(0);
+  const [exportFocusRequest, setExportFocusRequest] = useState(0);
+  const canClear = useCanClearSources();
   const report = useInventoryReport(generatedAt);
   const closeModal = useCallback(() => setOpenModal(null), []);
+  const finishClear = useCallback(() => {
+    setOpenModal(null);
+    setExportFocusRequest((request) => request + 1);
+  }, []);
 
   const sessionId = report?.header.sessionId ?? null;
   const selectedProduct =
@@ -104,6 +115,9 @@ export default function App() {
             onViewChange={setActiveView}
             onExport={() => setOpenModal(MODALS.EXPORT)}
             exportDisabled={!report}
+            onClear={() => setOpenModal(MODALS.CLEAR)}
+            clearDisabled={!canClear}
+            exportFocusRequest={exportFocusRequest}
           />
         }
         left={
@@ -136,6 +150,9 @@ export default function App() {
       {openModal === MODALS.SESSIONS ? <SessionDialog onClose={closeModal} /> : null}
       {openModal === MODALS.ISSUES && report ? (
         <RejectedDialog rejected={report.rejected} sources={report.sources} onClose={closeModal} />
+      ) : null}
+      {openModal === MODALS.CLEAR ? (
+        <ClearSourcesDialog onClose={closeModal} onCleared={finishClear} />
       ) : null}
       {openModal === MODALS.EXPORT && report ? (
         <ExportDialog report={report} onClose={closeModal} onReviewConflicts={reviewConflict} />

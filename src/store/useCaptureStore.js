@@ -246,6 +246,16 @@ export function createCaptureStore(overrides = {}) {
         return run();
       },
 
+      clearBatch: () => {
+        if (pendingRun !== null || get().isRunning) {
+          return false;
+        }
+
+        set({ items: [], currentError: null });
+
+        return true;
+      },
+
       /** Devolve as fotos com erro para a fila e retoma. */
       retry: () => {
         if (!get().items.some((item) => item.status === CAPTURE_ITEM_STATUSES.ERROR)) {
